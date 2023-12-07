@@ -20,6 +20,9 @@ pub const Dir = struct {
 pub const ActionType = union(enum) {
     IDLE,
     MOVE: Dir,
+    ATTACK: struct {
+        dmg: i8,
+    },
     // Indicate non-exhaustive enum.
     // See https://github.com/ziglang/zig/issues/2524
     _,
@@ -41,6 +44,7 @@ pub const ActionResult = struct {
 pub const Action = struct {
     type: ActionType,
     actor: *Entity,
+    target: ?*Entity = null,
 
     pub inline fn getParams(self: Action, comptime AT: ActionTag) ActionType.TypeFromTag(AT) {
         std.debug.assert(std.meta.activeTag(self.type) == AT);
