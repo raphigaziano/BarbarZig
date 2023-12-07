@@ -74,6 +74,7 @@ fn handle_action(gs: *GameState, action: Action) ActionResult {
     return switch (action.type) {
         .IDLE => .{ .accepted = true }, // no-op
         .MOVE => systems.movement.move_entity(gs, action),
+        .ATTACK => systems.combat.handle_attack(gs, action),
         else => {
             // Just log and invalidate the command for now.
             // We may want to treat this as a proper error in the future.
