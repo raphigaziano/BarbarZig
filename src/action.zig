@@ -35,6 +35,7 @@ const ActionTag = @typeInfo(ActionType).Union.tag_type.?;
 
 pub const ActionResult = struct {
     accepted: bool,
+    next: ?Action = null,
 };
 
 pub const Action = struct {
@@ -64,7 +65,7 @@ pub const Action = struct {
 };
 
 /// Dispacth game action to the relevant subsystem
-pub fn process_action(gs: *GameState, action: Action) ActionResult {
+fn handle_action(gs: *GameState, action: Action) ActionResult {
     const systems = @import("systems.zig");
     return switch (action.type) {
         .IDLE => .{ .accepted = true }, // no-op
@@ -76,4 +77,14 @@ pub fn process_action(gs: *GameState, action: Action) ActionResult {
             return .{ .accepted = false };
         },
     };
+}
+
+/// Process the given action recursively (ie will process any `next_action`
+/// returned)
+pub fn process_action(gs: *GameState, action: Action) ActionResult {
+    const r = handle_action(gs, action);
+    if (r.next) |next_action| {
+        return process_action(gs, next_action);
+    }
+    return r;
 }
