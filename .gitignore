@@ -1,0 +1,10 @@
+zig-cache/
+zig-out/
+
+.ropeproject
+
+*.swo
+*.swp
+
+logs/
+static/CACHE
