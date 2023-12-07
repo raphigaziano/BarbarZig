@@ -96,6 +96,16 @@ fn draw_hud(gs: *GameState, events: []Event) void {
     _ = ncurses.mvaddstr(0, @intCast(info_panel_x), &ticks);
 
     var yoffset: i32 = 2;
+    for (gs.actors.items) |actor| {
+        const vis = actor.getComponent(.VISIBLE) catch continue;
+        const hlth = actor.getComponent(.HEALTH) catch continue;
+        var buffer: [14]u8 = undefined;
+        _ = std.fmt.bufPrint(&buffer, "{c} - Hp: {}/{}", .{ vis.glyph, hlth.hp, hlth.max_hp }) catch {};
+        _ = ncurses.mvaddstr(@intCast(yoffset), @intCast(info_panel_x), &buffer);
+        yoffset += 1;
+    }
+
+    yoffset += 1;
     for (events) |ev| {
         if (ev.msg) |m| {
             _ = ncurses.mvaddstr(@intCast(yoffset), @intCast(info_panel_x), m);
