@@ -18,6 +18,7 @@ pub fn spawn(gs: *GameState) !void {
         Heap.allocator, &.{ 
         Component.PLAYER,
         Component{ .VISIBLE = .{ .glyph = '@' } }, 
+        Component{ .HEALTH = .{.hp = 10, .max_hp = 10 } },
         Component{ .POSITION = __get_spawn_location(gs) },
     });
     // zig fmt: on
@@ -36,6 +37,7 @@ pub fn spawn(gs: *GameState) !void {
             var actor = try Entity.init(
                 Heap.allocator, &.{ 
                 Component{ .VISIBLE = .{ .glyph = 'g' } }, 
+                Component{ .HEALTH = .{.hp = 5, .max_hp = 5 } },
                 Component{ .POSITION = __get_spawn_location(gs) },
             });
             // zig fmt: on

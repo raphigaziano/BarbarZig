@@ -17,6 +17,7 @@ pub const ComponentTag = @typeInfo(Component).Union.tag_type.?;
 pub const Component = union(enum) {
     PLAYER: PlayerComponent,
     POSITION: PositionComponent,
+    HEALTH: HealthComponent,
     VISIBLE: VisibleComponent,
 
     const Self = @This();
@@ -134,3 +135,27 @@ pub const VisibleComponent = struct {
     visible: bool = true,
     glyph: u8,
 };
+
+pub const HealthComponent = struct {
+    hp: i32,
+    max_hp: i32,
+
+    pub fn is_alive(self: HealthComponent) bool {
+        return self.hp > 0;
+    }
+};
+
+// --- Tests ---
+
+test "HealthComponent.is_alive" {
+    var i: i8 = 1;
+    while (i < 10) : (i += 1) {
+        const c = HealthComponent{ .hp = i };
+        try std.testing.expectEqual(true, c.is_alive());
+    }
+    i = -10;
+    while (i <= 0) : (i += 1) {
+        const c = HealthComponent{ .hp = i };
+        try std.testing.expectEqual(false, c.is_alive());
+    }
+}
