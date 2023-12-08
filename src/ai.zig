@@ -27,7 +27,7 @@ pub fn take_turn(gs: *GameState, actor: *Entity) void {
     else
         action.Action{
             .type = .{
-                .MOVE = pos.to(player_pos, true),
+                .MOVE = pos.toNormalized(player_pos),
             },
             .actor = actor
         };

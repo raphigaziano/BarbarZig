@@ -12,6 +12,11 @@ pub fn Vec2(comptime T: type) type {
 
         const Self = @This();
 
+        pub fn normalize(self: *Self) void {
+            self.x = std.math.sign(self.x);
+            self.y = std.math.sign(self.y);
+        }
+
         pub inline fn distanceTo(self: Self, other: Self) T {
             // zig fmt: off
             return std.math.sqrt(
@@ -21,16 +26,17 @@ pub fn Vec2(comptime T: type) type {
             // zig fmt: on
         }
 
-        pub inline fn to(self: Self, other: Self, normalize: bool) Self {
-            const dx = other.x - self.x;
-            const dy = other.y - self.y;
-
-            if (!normalize) return .{ .x = dx, .y = dy };
-
+        pub inline fn to(self: Self, other: Self) Self {
             return .{
-                .x = std.math.sign(dx),
-                .y = std.math.sign(dy),
+                .x = other.x - self.x,
+                .y = other.y - self.y,
             };
+        }
+
+        pub fn toNormalized(self: Self, other: Self) Self {
+            var new = self.to(other);
+            new.normalize();
+            return new.normalize();
         }
     };
 }
@@ -83,62 +89,58 @@ test "Vec2 distanceTo" {
     try testing.expect(2 == v2.distanceTo(v1));
 }
 
+test "Vec2.ormalize" {
+    var v = Vec2(i8){ .x = 12, .y = -8 };
+    v.normalize();
+
+    try testing.expect(1 == v.x);
+    try testing.expect(-1 == v.y);
+
+    v = Vec2(i8){ .x = 0, .y = 0 };
+    v.normalize();
+
+    try testing.expect(0 == v.x);
+    try testing.expect(0 == v.y);
+}
+
 test "Vec2.to" {
     var v1 = Vec2(i8){ .x = 0, .y = 0 };
     var v2 = Vec2(i8){ .x = 0, .y = 0 };
 
-    try testing.expect(0 == v1.to(v2, false).x);
-    try testing.expect(0 == v1.to(v2, false).y);
-    try testing.expect(0 == v2.to(v1, false).x);
-    try testing.expect(0 == v2.to(v1, false).y);
+    try testing.expect(0 == v1.to(v2).x);
+    try testing.expect(0 == v1.to(v2).y);
+    try testing.expect(0 == v2.to(v1).x);
+    try testing.expect(0 == v2.to(v1).y);
 
     v1 = Vec2(i8){ .x = 0, .y = 0 };
     v2 = Vec2(i8){ .x = 1, .y = 0 };
 
-    try testing.expect(1 == v1.to(v2, false).x);
-    try testing.expect(0 == v1.to(v2, false).y);
-    try testing.expect(-1 == v2.to(v1, false).x);
-    try testing.expect(0 == v2.to(v1, false).y);
+    try testing.expect(1 == v1.to(v2).x);
+    try testing.expect(0 == v1.to(v2).y);
+    try testing.expect(-1 == v2.to(v1).x);
+    try testing.expect(0 == v2.to(v1).y);
 
     v1 = Vec2(i8){ .x = 0, .y = 0 };
     v2 = Vec2(i8){ .x = 0, .y = 1 };
 
-    try testing.expect(0 == v1.to(v2, false).x);
-    try testing.expect(1 == v1.to(v2, false).y);
-    try testing.expect(0 == v2.to(v1, false).x);
-    try testing.expect(-1 == v2.to(v1, false).y);
+    try testing.expect(0 == v1.to(v2).x);
+    try testing.expect(1 == v1.to(v2).y);
+    try testing.expect(0 == v2.to(v1).x);
+    try testing.expect(-1 == v2.to(v1).y);
 
     v1 = Vec2(i8){ .x = 0, .y = 0 };
     v2 = Vec2(i8){ .x = 1, .y = 1 };
 
-    try testing.expect(1 == v1.to(v2, false).x);
-    try testing.expect(1 == v1.to(v2, false).y);
-    try testing.expect(-1 == v2.to(v1, false).x);
-    try testing.expect(-1 == v2.to(v1, false).y);
+    try testing.expect(1 == v1.to(v2).x);
+    try testing.expect(1 == v1.to(v2).y);
+    try testing.expect(-1 == v2.to(v1).x);
+    try testing.expect(-1 == v2.to(v1).y);
 
     v1 = Vec2(i8){ .x = 0, .y = 0 };
     v2 = Vec2(i8){ .x = 2, .y = 2 };
 
-    try testing.expect(2 == v1.to(v2, false).x);
-    try testing.expect(2 == v1.to(v2, false).y);
-    try testing.expect(-2 == v2.to(v1, false).x);
-    try testing.expect(-2 == v2.to(v1, false).y);
-}
-
-test "Vec2.to normalized" {
-    var v1 = Vec2(i8){ .x = 0, .y = 0 };
-    var v2 = Vec2(i8){ .x = 12, .y = -8 };
-
-    try testing.expect(1 == v1.to(v2, true).x);
-    try testing.expect(-1 == v1.to(v2, true).y);
-    try testing.expect(-1 == v2.to(v1, true).x);
-    try testing.expect(1 == v2.to(v1, true).y);
-
-    v1 = Vec2(i8){ .x = 0, .y = 0 };
-    v2 = Vec2(i8){ .x = 0, .y = 0 };
-
-    try testing.expect(0 == v1.to(v2, true).x);
-    try testing.expect(0 == v1.to(v2, true).y);
-    try testing.expect(0 == v2.to(v1, true).x);
-    try testing.expect(0 == v2.to(v1, true).y);
+    try testing.expect(2 == v1.to(v2).x);
+    try testing.expect(2 == v1.to(v2).y);
+    try testing.expect(-2 == v2.to(v1).x);
+    try testing.expect(-2 == v2.to(v1).y);
 }
