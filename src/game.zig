@@ -119,6 +119,14 @@ pub const BarbarGame = struct {
             if (actor.hasComponent(.PLAYER)) continue;
             ai.take_turn(self.state, actor);
         }
+        // End of turn cleanup.
+        for (self.state.actors.items, 0..) |actor, i| {
+            const hlth = actor.getComponent(.HEALTH) catch unreachable;
+            if (!hlth.is_alive()) {
+                actor.destroy();
+                _ = self.state.actors.swapRemove(i);
+            }
+        }
         self.state.ticks += 1;
     }
 
