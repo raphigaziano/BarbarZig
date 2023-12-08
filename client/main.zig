@@ -178,7 +178,7 @@ pub fn main() !void {
             if (request.type == .QUIT) {
                 break;
             }
-            std.log.debug("Received Response: {}", .{response});
+            // std.log.debug("Received Response: {}", .{response});
             const payload = response.payload.CMD_RESULT;
             state = payload.state;
             events = payload.events;
