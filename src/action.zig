@@ -21,17 +21,17 @@ pub const ActionType = union(enum) {
     // See https://github.com/ziglang/zig/issues/2524
     _,
 
-    /// Helper to return the concrete type associated with the given Tag
-    inline fn TypeFromTag(comptime AT: ActionTag) type {
-        return std.meta.fields(ActionType)[@intFromEnum(AT)].type;
-    }
-
     pub fn format(self: ActionType, comptime fmt: []const u8, opts: std.fmt.FormatOptions, writer: anytype) !void {
         _ = fmt;
         _ = opts;
         _ = try writer.print("{s}", .{@tagName(self)});
     }
 };
+
+/// Helper to return the concrete type associated with the given Tag
+inline fn ATypeFromTag(comptime AT: ActionTag) type {
+    return std.meta.TagPayload(ActionType, AT);
+}
 
 /// Alias for Action's enum tag type
 const ActionTag = @typeInfo(ActionType).Union.tag_type.?;
@@ -50,7 +50,7 @@ pub const Action = struct {
         std.debug.assert(std.meta.activeTag(self.type) == ATag);
     }
 
-    pub inline fn getParams(self: Action, comptime ATag: ActionTag) ActionType.TypeFromTag(ATag) {
+    pub inline fn getParams(self: Action, comptime ATag: ActionTag) ATypeFromTag(ATag) {
         self.assertType(ATag);
         return @field(self.type, @tagName(ATag));
     }

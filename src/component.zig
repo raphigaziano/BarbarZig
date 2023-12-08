@@ -11,6 +11,11 @@ pub const ComponentError = error{
 /// Alias for Component's enum tag type
 pub const ComponentTag = @typeInfo(Component).Union.tag_type.?;
 
+/// Helper to return the concrete type associated with the given Tag
+pub inline fn CTypeFromTag(comptime CT: ComponentTag) type {
+    return std.meta.TagPayload(Component, CT);
+}
+
 /// Base component struct.
 /// TODO: dynamic generation of the tagged union from the concrete component
 /// defs.
@@ -22,13 +27,8 @@ pub const Component = union(enum) {
 
     const Self = @This();
 
-    /// Helper to return the concrete type associated with the given Tag
-    pub inline fn TypeFromTag(comptime CT: ComponentTag) type {
-        return std.meta.fields(Component)[@intFromEnum(CT)].type;
-    }
-
     pub fn init(comptime CT: ComponentTag, data: anytype) Component {
-        const component_type = Self.TypeFromTag(CT);
+        const component_type = CTypeFromTag(CT);
         if (component_type == void) {
             return @unionInit(Self, @tagName(CT), undefined);
         }
@@ -75,7 +75,7 @@ pub const ComponentList = struct {
         return self.indexer.contains(CTag);
     }
 
-    pub fn get(self: Self, comptime CTag: ComponentTag) !Component.TypeFromTag(CTag) {
+    pub fn get(self: Self, comptime CTag: ComponentTag) !CTypeFromTag(CTag) {
         const index = self.indexer.get(CTag);
         if (index) |idx| {
             return @field(self.comps.items[idx], @tagName(CTag));
@@ -89,7 +89,7 @@ pub const ComponentList = struct {
     // but this fails because we end up returning a pointer to the temporary,
     // stack allocated value returned by getComponent instead of the actual
     // array item.
-    pub fn getPtr(self: Self, comptime CTag: ComponentTag) !*Component.TypeFromTag(CTag) {
+    pub fn getPtr(self: Self, comptime CTag: ComponentTag) !*CTypeFromTag(CTag) {
         const index = self.indexer.get(CTag);
         if (index) |idx| {
             return &@field(self.comps.items[idx], @tagName(CTag));
@@ -98,7 +98,7 @@ pub const ComponentList = struct {
         }
     }
 
-    pub fn _getPtr(self: Self, comptime CTag: ComponentTag) !*Component.TypeFromTag(CTag) {
+    pub fn _getPtr(self: Self, comptime CTag: ComponentTag) !*CTypeFromTag(CTag) {
         _ = self;
         // return try &@call(.always_inline, Self.get, .{ self, CTag });
         // const c = try @call(.always_inline, Self.get, .{ self, CTag });

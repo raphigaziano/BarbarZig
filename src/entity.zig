@@ -9,6 +9,7 @@ const Component = @import("component.zig").Component;
 const Logger = @import("utils/log.zig");
 
 const ComponentList = @import("component.zig").ComponentList;
+const CTypeFromTag = @import("component.zig").CTypeFromTag;
 
 /// Glorified Component container.
 pub const Entity = struct {
@@ -58,11 +59,11 @@ pub const Entity = struct {
         return self.components.has(CT);
     }
 
-    pub inline fn getComponent(self: Self, comptime CT: ComponentTag) !Component.TypeFromTag(CT) {
+    pub inline fn getComponent(self: Self, comptime CT: ComponentTag) !CTypeFromTag(CT) {
         return self.components.get(CT);
     }
 
-    pub inline fn getComponentPtr(self: Self, comptime CT: ComponentTag) !*Component.TypeFromTag(CT) {
+    pub inline fn getComponentPtr(self: Self, comptime CT: ComponentTag) !*CTypeFromTag(CT) {
         return self.components.getPtr(CT);
     }
 
