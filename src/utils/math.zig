@@ -36,7 +36,7 @@ pub fn Vec2(comptime T: type) type {
         pub fn toNormalized(self: Self, other: Self) Self {
             var new = self.to(other);
             new.normalize();
-            return new.normalize();
+            return new;
         }
     };
 }
