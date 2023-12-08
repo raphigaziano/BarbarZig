@@ -111,7 +111,7 @@ pub const ComponentList = struct {
 
 // -------------------- Actual component definitions ------------------------
 
-const Vec2 = @import("math.zig").Vec2;
+const Vec2 = @import("utils/math.zig").Vec2;
 
 // TODO: generate component struct from this
 // zig fmt: off
