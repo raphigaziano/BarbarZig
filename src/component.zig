@@ -26,6 +26,18 @@ pub const Component = union(enum) {
     pub inline fn TypeFromTag(comptime CT: ComponentTag) type {
         return std.meta.fields(Component)[@intFromEnum(CT)].type;
     }
+
+    pub fn init(comptime CT: ComponentTag, data: anytype) Component {
+        const component_type = Self.TypeFromTag(CT);
+        if (component_type == void) {
+            return @unionInit(Self, @tagName(CT), undefined);
+        }
+        const cdata = if (@hasDecl(component_type, "init"))
+            component_type.init(data)
+        else
+            data;
+        return @unionInit(Self, @tagName(CT), cdata);
+    }
 };
 
 /// Component container.
@@ -139,6 +151,16 @@ pub const VisibleComponent = struct {
 pub const HealthComponent = struct {
     hp: i32,
     max_hp: i32,
+
+    pub fn init(data: anytype) HealthComponent {
+        return .{
+            .hp = data.hp,
+            .max_hp = if (@hasField(@TypeOf(data), "max_hp"))
+                data.max_hp
+            else
+                data.hp,
+        };
+    }
 
     pub fn is_alive(self: HealthComponent) bool {
         return self.hp > 0;

@@ -16,10 +16,10 @@ pub fn spawn(gs: *GameState) !void {
     // zig fmt: off
     var player = try Entity.init(
         Heap.allocator, &.{ 
-        Component.PLAYER,
-        Component{ .VISIBLE = .{ .glyph = '@' } }, 
-        Component{ .HEALTH = .{.hp = 10, .max_hp = 10 } },
-        Component{ .POSITION = __get_spawn_location(gs) },
+        Component.init(.PLAYER, void),
+        Component.init(.VISIBLE, .{ .glyph = '@' }),
+        Component.init(.HEALTH, .{ .hp = 10 }),
+        Component.init(.POSITION, __get_spawn_location(gs)),
     });
     // zig fmt: on
     try gs.actors.append(player);
@@ -36,9 +36,9 @@ pub fn spawn(gs: *GameState) !void {
         // zig fmt: off
             var actor = try Entity.init(
                 Heap.allocator, &.{ 
-                Component{ .VISIBLE = .{ .glyph = 'g' } }, 
-                Component{ .HEALTH = .{.hp = 5, .max_hp = 5 } },
-                Component{ .POSITION = __get_spawn_location(gs) },
+                Component.init(.VISIBLE, .{ .glyph = 'g' }),
+                Component.init(.HEALTH, .{ .hp = 5 }),
+                Component.init(.POSITION, __get_spawn_location(gs)),
             });
             // zig fmt: on
         try gs.actors.append(actor);
