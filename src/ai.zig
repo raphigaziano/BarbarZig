@@ -4,6 +4,7 @@
 
 const std = @import("std");
 
+const math = @import("math.zig");
 const action = @import("action.zig");
 
 const GameState = @import("state.zig").GameState;
@@ -13,15 +14,23 @@ const Entity = @import("entity.zig").Entity;
 /// Dummy ai.
 /// Just do a random move.
 pub fn take_turn(gs: *GameState, actor: *Entity) void {
+    const pos = actor.getComponent(.POSITION) catch unreachable;
+    const player_pos = gs.player.getComponent(.POSITION) catch unreachable;
+
     // zig fmt: off
-    const _action = action.Action{
-        .type = .{ 
-            .MOVE = .{
-                .dx = rng.rand_int(i2, -1, 1), 
-                .dy = rng.rand_int(i2, -1, 1) 
+    const _action = if (pos.distanceTo(player_pos) == 1)
+        action.Action{
+            .type = .{ .ATTACK = .{ .dmg = 1 } },
+            .actor = actor,
+            .target = gs.player,
+        }
+    else
+        action.Action{
+            .type = .{
+                .MOVE = pos.to(player_pos, true),
             },
-        },
-        .actor = actor,
-    };
+            .actor = actor
+        };
+    // zig fmt: on
     _ = action.process_action(gs, _action);
 }
