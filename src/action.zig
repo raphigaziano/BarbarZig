@@ -46,9 +46,13 @@ pub const Action = struct {
     actor: *Entity,
     target: ?*Entity = null,
 
-    pub inline fn getParams(self: Action, comptime AT: ActionTag) ActionType.TypeFromTag(AT) {
-        std.debug.assert(std.meta.activeTag(self.type) == AT);
-        return @field(self.type, @tagName(AT));
+    pub inline fn assertType(self: Action, comptime ATag: ActionTag) void {
+        std.debug.assert(std.meta.activeTag(self.type) == ATag);
+    }
+
+    pub inline fn getParams(self: Action, comptime ATag: ActionTag) ActionType.TypeFromTag(ATag) {
+        self.assertType(ATag);
+        return @field(self.type, @tagName(ATag));
     }
 
     fn result(self: Action, accepted: bool, message: ?[:0]const u8) ActionResult {
