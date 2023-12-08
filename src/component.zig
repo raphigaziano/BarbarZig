@@ -150,12 +150,12 @@ pub const HealthComponent = struct {
 test "HealthComponent.is_alive" {
     var i: i8 = 1;
     while (i < 10) : (i += 1) {
-        const c = HealthComponent{ .hp = i };
+        const c = HealthComponent{ .hp = i, .max_hp = i };
         try std.testing.expectEqual(true, c.is_alive());
     }
     i = -10;
     while (i <= 0) : (i += 1) {
-        const c = HealthComponent{ .hp = i };
+        const c = HealthComponent{ .hp = i, .max_hp = i };
         try std.testing.expectEqual(false, c.is_alive());
     }
 }
