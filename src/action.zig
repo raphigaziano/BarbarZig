@@ -31,6 +31,12 @@ pub const ActionType = union(enum) {
     inline fn TypeFromTag(comptime AT: ActionTag) type {
         return std.meta.fields(ActionType)[@intFromEnum(AT)].type;
     }
+
+    pub fn format(self: ActionType, comptime fmt: []const u8, opts: std.fmt.FormatOptions, writer: anytype) !void {
+        _ = fmt;
+        _ = opts;
+        _ = try writer.print("{s}", .{@tagName(self)});
+    }
 };
 
 /// Alias for Action's enum tag type
@@ -82,7 +88,7 @@ fn handle_action(gs: *GameState, action: Action) ActionResult {
         else => {
             // Just log and invalidate the command for now.
             // We may want to treat this as a proper error in the future.
-            Logger.warn("Action Type handler not implemented: {}", .{action});
+            Logger.warn("Action Type handler not implemented for action type: {}", .{action.type});
             return .{ .accepted = false };
         },
     };
