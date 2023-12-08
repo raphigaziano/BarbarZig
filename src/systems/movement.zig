@@ -20,8 +20,8 @@ pub fn move_entity(gs: *GameState, action: Action) ActionResult {
         return action.reject(allocTmpStr("Entity cannot move: {}", .{actor}));
     };
 
-    const nx = pos.x + action_params.dx;
-    const ny = pos.y + action_params.dy;
+    const nx = pos.x + action_params.x;
+    const ny = pos.y + action_params.y;
 
     if (gs.map.at(@intCast(nx), @intCast(ny))) |cell| {
         if (cell == .WALL) {

@@ -6,20 +6,14 @@ const std = @import("std");
 
 const GameState = @import("state.zig").GameState;
 const Entity = @import("entity.zig").Entity;
+const Vec2 = @import("math.zig").Vec2;
 
 const Event = @import("event.zig").Event;
 const Logger = @import("utils/log.zig");
 
-// TODO: move this elsewhere (or just use an anonymous struct for
-// ActionType.MOVE params?)
-pub const Dir = struct {
-    dx: i8,
-    dy: i8,
-};
-
 pub const ActionType = union(enum) {
     IDLE,
-    MOVE: Dir,
+    MOVE: Vec2(i32), // Must match Position component's type
     ATTACK: struct {
         dmg: i8,
     },

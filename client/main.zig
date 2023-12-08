@@ -128,7 +128,7 @@ fn draw_game(gs: *GameState, events: []Event) void {
 // --- Input handling ---
 
 inline fn _mk_move_request(dx: i32, dy: i32) Request {
-    return Request{ .type = .{ .GAME_CMD = .{ .MOVE = .{ .dx = dx, .dy = dy } } } };
+    return Request{ .type = .{ .GAME_CMD = .{ .MOVE = .{ .x = dx, .y = dy } } } };
 }
 
 fn handle_input() ?Request {
