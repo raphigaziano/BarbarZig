@@ -4,7 +4,7 @@
 
 const std = @import("std");
 
-const math = @import("math.zig");
+const math = @import("utils/math.zig");
 const action = @import("action.zig");
 
 const GameState = @import("state.zig").GameState;

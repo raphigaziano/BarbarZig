@@ -6,7 +6,7 @@ const std = @import("std");
 
 const GameState = @import("state.zig").GameState;
 const Entity = @import("entity.zig").Entity;
-const Vec2 = @import("math.zig").Vec2;
+const Vec2 = @import("utils/math.zig").Vec2;
 
 const Event = @import("event.zig").Event;
 const Logger = @import("utils/log.zig");

@@ -46,7 +46,7 @@ pub fn spawn(gs: *GameState) !void {
 }
 
 /// Tmp helper to avoid spawning inside walls
-const Vec2 = @import("math.zig").Vec2;
+const Vec2 = @import("utils/math.zig").Vec2;
 pub fn __get_spawn_location(gs: *GameState) Vec2(i32) {
     var x: i32 = -1;
     var y: i32 = -1;
