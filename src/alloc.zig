@@ -29,7 +29,6 @@ pub const BarbarHeap = struct {
     pub fn shutdown() void {
         _ = BarbarHeap.arena.reset(.free_all);
 
-        const gpa_check = BarbarHeap.gpa.deinit();
-        Logger.debug("{}", .{gpa_check});
+        _ = BarbarHeap.gpa.detectLeaks();
     }
 };

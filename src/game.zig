@@ -91,7 +91,7 @@ pub const BarbarGame = struct {
                 self.start() catch {
                     return self.mk_response(.ERROR, .{ .ERROR = .INTERNAL_ERROR });
                 };
-                return self.mk_response(.OK, .{ .CMD_RESULT = .{ .state = self.state, .events = &Event.log } });
+                return self.mk_response(.OK, .{ .CMD_RESULT = .{ .running = self.running, .state = self.state, .events = &Event.log } });
             },
             .QUIT => {
                 self.shutdown();
@@ -127,15 +127,16 @@ pub const BarbarGame = struct {
                 if (!hlth.is_alive()) {
                     if (actor.hasComponent(.PLAYER)) {
                         self.running = false;
+                    } else {
+                        actor.destroy();
+                        _ = self.state.actors.swapRemove(i);
                     }
-                    actor.destroy();
-                    _ = self.state.actors.swapRemove(i);
                 }
             }
         }
         self.state.ticks += 1;
 
-        return self.mk_response(.OK, .{ .CMD_RESULT = .{ .state = self.state, .events = &Event.log } });
+        return self.mk_response(.OK, .{ .CMD_RESULT = .{ .running = self.running, .state = self.state, .events = &Event.log } });
     }
 
     /// Deinit all the things

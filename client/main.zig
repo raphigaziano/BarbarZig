@@ -159,14 +159,9 @@ const Request = barbar.Request;
 const Response = barbar.Response;
 const send_request = barbar.recv_request;
 
-pub fn main() !void {
-    _ = display_init();
-    defer display_shutdown();
+const RunResult = enum { QUIT, GAME_OVER };
 
-    // TODO: Parse command line args (seed, ...)
-    // const args = std.process.args();
-    // std.debug.print("{}", .{args});
-
+pub fn run() RunResult {
     const start_response = send_request(.{ .type = .{ .START = .{ .seed = null } } });
     var state = start_response.payload.CMD_RESULT.state;
     var events = start_response.payload.CMD_RESULT.events;
@@ -176,19 +171,44 @@ pub fn main() !void {
         if (handle_input()) |request| {
             const response = send_request(request);
             if (request.type == .QUIT) {
-                break;
+                return .QUIT;
             }
             // std.log.debug("Received Response: {}", .{response});
             switch (response.payload) {
                 .CMD_RESULT => |payload| {
                     state = payload.state;
                     events = payload.events;
+                    if (!payload.running) {
+                        draw_game(state, events.items);
+                        return .GAME_OVER;
+                    }
                 },
                 .ERROR => |err_payload| {
                     std.log.err("{}", .{err_payload});
                 },
                 .EMPTY => {},
             }
+        }
+    }
+}
+
+pub fn main() !void {
+    _ = display_init();
+    defer display_shutdown();
+
+    // TODO: Parse command line args (seed, ...)
+    // const args = std.process.args();
+    // std.debug.print("{}", .{args});
+
+    while (true) {
+        switch (run()) {
+            .QUIT => break,
+            .GAME_OVER => {
+                _ = ncurses.mvaddstr(10, 40, "You're dead :( Press R to restart.");
+                if (ncurses.getch() != 'r') {
+                    break;
+                }
+            },
         }
     }
 }

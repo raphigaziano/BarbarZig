@@ -39,6 +39,7 @@ pub const Response = struct {
             INVALID_REQUEST,
         },
         CMD_RESULT: struct {
+            running: bool,
             state: *GS,
             events: *std.ArrayList(Event),
         },
