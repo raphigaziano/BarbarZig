@@ -27,7 +27,11 @@ pub fn handle_attack(gs: *GameState, action: Action) ActionResult {
 
     if (!target_hlth.is_alive()) {
         // Just log and let the game handle it at the end of the turn
-        Event.emit(allocTmpStr("Enity <{}> is de@d!", .{target.id})) catch unreachable;
+        Event.emit(.{
+            .type = .ACTOR_DIED,
+            .msg = allocTmpStr("Enity <{}> is de@d!", .{target.id}),
+            .actor = target,
+        }) catch unreachable;
     }
     return r;
 }

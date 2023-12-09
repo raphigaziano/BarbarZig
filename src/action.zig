@@ -56,8 +56,12 @@ pub const Action = struct {
     }
 
     fn result(self: Action, accepted: bool, message: ?[:0]const u8) ActionResult {
-        _ = self;
-        Event.emit(message) catch {}; // Ignore error
+        Event.emit(.{
+            .type = .ACTION_PROCESSED,
+            .msg = message,
+            .actor = self.actor,
+            .target = self.target,
+        }) catch {}; // Ignore error
         return .{
             .accepted = accepted,
         };
