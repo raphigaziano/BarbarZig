@@ -51,14 +51,14 @@ pub const BarbarGame = struct {
         uuid.newV4().to_string(&id);
 
         // zig fmt: off
-        return .{ 
-            .id = id, 
-            .seed = rng.seed, 
+        return .{
+            .id = id,
+            .seed = rng.seed,
             .state = Heap.allocator.create(GameState) catch |err| {
                 Logger.err("Could not allocate memory:", .{});
                 std.debug.dumpCurrentStackTrace(null);
                 return err;
-            } 
+            }
         };
         // zig fmt: on
     }

@@ -46,10 +46,10 @@ pub fn Grid(comptime CT: type) type {
                 if (self.index < self.grid.width * self.grid.height) {
                     defer self.index += 1;
                     // zig fmt: off
-                    return .{ 
-                        .x = self.index % self.grid.width, 
-                        .y = self.index / self.grid.width, 
-                        .type = self.grid.cells[self.index] 
+                    return .{
+                        .x = self.index % self.grid.width,
+                        .y = self.index / self.grid.width,
+                        .type = self.grid.cells[self.index]
                     };
                     // zig fmt: on
                 } else {

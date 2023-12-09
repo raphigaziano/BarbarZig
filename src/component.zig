@@ -129,11 +129,11 @@ const Vec2 = @import("utils/math.zig").Vec2;
 // zig fmt: off
 const ComponentDefs = .{
     .{ .tag_name = "Player", .type = void },
-    .{ .tag_name = "Visible", 
+    .{ .tag_name = "Visible",
         .type = struct {
             visible: bool,
             glyph: u8,
-        } 
+        }
     },
     .{ .tag_name = "Position", .type = Vec2(i32) },
 };

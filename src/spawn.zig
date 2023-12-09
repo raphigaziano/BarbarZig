@@ -15,10 +15,10 @@ pub fn spawn(gs: *GameState) !void {
 
     // zig fmt: off
     var player = try Entity.init(
-        Heap.allocator, &.{ 
+        Heap.allocator, &.{
         Component.init(.PLAYER, void),
         Component.init(.VISIBLE, .{ .glyph = '@' }),
-        Component.init(.HEALTH, .{ .hp = 10 }),
+        Component.init(.HEALTH, .{ .hp = 1 }),
         Component.init(.POSITION, __get_spawn_location(gs)),
     });
     // zig fmt: on
@@ -35,7 +35,7 @@ pub fn spawn(gs: *GameState) !void {
     for (0..10) |_| {
         // zig fmt: off
             var actor = try Entity.init(
-                Heap.allocator, &.{ 
+                Heap.allocator, &.{
                 Component.init(.VISIBLE, .{ .glyph = 'g' }),
                 Component.init(.HEALTH, .{ .hp = 5 }),
                 Component.init(.POSITION, __get_spawn_location(gs)),
