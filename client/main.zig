@@ -179,9 +179,16 @@ pub fn main() !void {
                 break;
             }
             // std.log.debug("Received Response: {}", .{response});
-            const payload = response.payload.CMD_RESULT;
-            state = payload.state;
-            events = payload.events;
+            switch (response.payload) {
+                .CMD_RESULT => |payload| {
+                    state = payload.state;
+                    events = payload.events;
+                },
+                .ERROR => |err_payload| {
+                    std.log.err("{}", .{err_payload});
+                },
+                .EMPTY => {},
+            }
         }
     }
 }

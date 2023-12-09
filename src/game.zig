@@ -31,6 +31,7 @@ const Logger = @import("utils/log.zig");
 pub const BarbarGame = struct {
     id: [36]u8,
     seed: u64,
+    running: bool = false,
     state: *GameState,
 
     const InitArgs = struct {
@@ -68,6 +69,7 @@ pub const BarbarGame = struct {
             .actors = std.ArrayList(Entity).init(Heap.allocator),
             .player = undefined,
         };
+        self.running = true;
 
         try mapgen.cellular_map(&self.state.map, Heap.allocator);
         try spawn(self.state);
@@ -92,21 +94,12 @@ pub const BarbarGame = struct {
                 return self.mk_response(.OK, .EMPTY);
             },
             .GAME_CMD => |cmd| {
-                // Clear event log & temp memory at the start of each turn.
-                // This needs to be handled before processing the player's
-                // turn, else any message will be discarder before they can
-                // be sent to the client.
-                // This is getting messy... We need to move this kind of logic
-                // in a dedicated function (tick?) and only deal with receiving
-                // the player action here.
-                Event.clear();
-                Heap.clearTmp();
-
-                const act = action.Action{ .type = cmd, .actor = self.state.player };
-                const result = action.process_action(self.state, act);
-                if (result.accepted) {
-                    self.tick();
+                if (!self.running) {
+                    // TODO: more explicit error response
+                    return self.mk_response(.ERROR, .{ .ERROR = .INVALID_REQUEST });
                 }
+                const act = action.Action{ .type = cmd, .actor = self.state.player };
+                self.tick(act);
                 return self.mk_response(.OK, .{ .CMD_RESULT = .{ .state = self.state, .events = &Event.log } });
             },
             else => self.mk_response(.ERROR, .{ .ERROR = .INVALID_REQUEST }),
@@ -114,15 +107,26 @@ pub const BarbarGame = struct {
     }
 
     /// Pseudo main loop => update current turn.
-    pub fn tick(self: *BarbarGame) void {
+    pub fn tick(self: *BarbarGame, player_action: action.Action) void {
+        Event.clear();
+        Heap.clearTmp();
+
+        const result = action.process_action(self.state, player_action);
+        if (!result.accepted)
+            return;
+
         for (self.state.actors.items) |*actor| {
             if (actor.hasComponent(.PLAYER)) continue;
             ai.take_turn(self.state, actor);
         }
+
         // End of turn cleanup.
         for (self.state.actors.items, 0..) |actor, i| {
             const hlth = actor.getComponent(.HEALTH) catch unreachable;
             if (!hlth.is_alive()) {
+                if (actor.hasComponent(.PLAYER)) {
+                    self.running = false;
+                }
                 actor.destroy();
                 _ = self.state.actors.swapRemove(i);
             }
