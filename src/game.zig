@@ -98,44 +98,44 @@ pub const BarbarGame = struct {
                 return self.mk_response(.OK, .EMPTY);
             },
             .GAME_CMD => |cmd| {
-                if (!self.running) {
-                    // TODO: more explicit error response
-                    return self.mk_response(.ERROR, .{ .ERROR = .INVALID_REQUEST });
-                }
                 const act = Action{ .type = cmd, .actor = self.state.player };
-                self.tick(act);
-                return self.mk_response(.OK, .{ .CMD_RESULT = .{ .state = self.state, .events = &Event.log } });
+                return self.tick(act);
             },
             else => self.mk_response(.ERROR, .{ .ERROR = .INVALID_REQUEST }),
         };
     }
 
     /// Pseudo main loop => update current turn.
-    pub fn tick(self: *BarbarGame, player_action: Action) void {
+    pub fn tick(self: *BarbarGame, player_action: Action) Response {
+        if (!self.running) {
+            // TODO: more explicit error response
+            return self.mk_response(.ERROR, .{ .ERROR = .INVALID_REQUEST });
+        }
         Event.clear();
         Heap.clearTmp();
 
         const result = process_action(self.state, player_action);
-        if (!result.accepted)
-            return;
+        if (result.accepted) {
+            for (self.state.actors.items) |*actor| {
+                if (actor.hasComponent(.PLAYER)) continue;
+                ai.take_turn(self.state, actor);
+            }
 
-        for (self.state.actors.items) |*actor| {
-            if (actor.hasComponent(.PLAYER)) continue;
-            ai.take_turn(self.state, actor);
-        }
-
-        // End of turn cleanup.
-        for (self.state.actors.items, 0..) |actor, i| {
-            const hlth = actor.getComponent(.HEALTH) catch unreachable;
-            if (!hlth.is_alive()) {
-                if (actor.hasComponent(.PLAYER)) {
-                    self.running = false;
+            // End of turn cleanup.
+            for (self.state.actors.items, 0..) |actor, i| {
+                const hlth = actor.getComponent(.HEALTH) catch unreachable;
+                if (!hlth.is_alive()) {
+                    if (actor.hasComponent(.PLAYER)) {
+                        self.running = false;
+                    }
+                    actor.destroy();
+                    _ = self.state.actors.swapRemove(i);
                 }
-                actor.destroy();
-                _ = self.state.actors.swapRemove(i);
             }
         }
         self.state.ticks += 1;
+
+        return self.mk_response(.OK, .{ .CMD_RESULT = .{ .state = self.state, .events = &Event.log } });
     }
 
     /// Deinit all the things
