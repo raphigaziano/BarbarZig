@@ -20,6 +20,10 @@ const Map = @import("map.zig").Map;
 const Entity = @import("entity.zig").Entity;
 const spawn = @import("spawn.zig").spawn;
 
+const Action = action.Action;
+const ActionResult = action.ActionResult;
+const process_action = action.process_action;
+
 const Heap = @import("alloc.zig").BarbarHeap;
 const Logger = @import("utils/log.zig");
 
@@ -98,7 +102,7 @@ pub const BarbarGame = struct {
                     // TODO: more explicit error response
                     return self.mk_response(.ERROR, .{ .ERROR = .INVALID_REQUEST });
                 }
-                const act = action.Action{ .type = cmd, .actor = self.state.player };
+                const act = Action{ .type = cmd, .actor = self.state.player };
                 self.tick(act);
                 return self.mk_response(.OK, .{ .CMD_RESULT = .{ .state = self.state, .events = &Event.log } });
             },
@@ -107,11 +111,11 @@ pub const BarbarGame = struct {
     }
 
     /// Pseudo main loop => update current turn.
-    pub fn tick(self: *BarbarGame, player_action: action.Action) void {
+    pub fn tick(self: *BarbarGame, player_action: Action) void {
         Event.clear();
         Heap.clearTmp();
 
-        const result = action.process_action(self.state, player_action);
+        const result = process_action(self.state, player_action);
         if (!result.accepted)
             return;
 
