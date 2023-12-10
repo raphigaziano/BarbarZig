@@ -65,7 +65,7 @@ fn draw_map(gs: *GameState) void {
 
 }
 
-fn draw_entity(e: Entity) void {
+fn draw_entity(e: *Entity) void {
     if (e.hasComponent(.PLAYER)) {
         _ = ncurses.attron(ncurses.COLOR_PAIR(PLAYER_COLOR_PAIR));
         _ = ncurses.attron(ncurses.A_BOLD);
@@ -96,10 +96,10 @@ fn draw_hud(gs: *GameState, events: []Event) void {
     _ = ncurses.mvaddstr(0, @intCast(info_panel_x), &ticks);
 
     var yoffset: i32 = 2;
-    for (gs.actors.items) |actor| {
+    for (gs.actors.values()) |actor| {
         const vis = actor.getComponent(.VISIBLE) catch continue;
         const hlth = actor.getComponent(.HEALTH) catch continue;
-        var buffer: [14]u8 = undefined;
+        var buffer = std.mem.zeroes([14]u8);
         _ = std.fmt.bufPrint(&buffer, "{c} - Hp: {}/{}", .{ vis.glyph, hlth.hp, hlth.max_hp }) catch {};
         _ = ncurses.mvaddstr(@intCast(yoffset), @intCast(info_panel_x), &buffer);
         yoffset += 1;
@@ -118,7 +118,7 @@ fn draw_hud(gs: *GameState, events: []Event) void {
 fn draw_game(gs: *GameState, events: []Event) void {
     _ = ncurses.clear();
     draw_map(gs);
-    for (gs.actors.items) |actor| {
+    for (gs.actors.values()) |actor| {
         draw_entity(actor);
     }
     draw_hud(gs, events);
@@ -200,13 +200,18 @@ pub fn main() !void {
     // const args = std.process.args();
     // std.debug.print("{}", .{args});
 
-    while (true) {
+    main: while (true) {
         switch (run()) {
             .QUIT => break,
             .GAME_OVER => {
-                _ = ncurses.mvaddstr(10, 40, "You're dead :( Press R to restart.");
-                if (ncurses.getch() != 'r') {
-                    break;
+                while (true) {
+                    _ = ncurses.mvaddstr(21, 0, "You're dead :( Press R to restart, Q to quit.");
+                    const key = ncurses.getch();
+                    if (key == 'r') {
+                        break;
+                    } else if (key == 'q') {
+                        break :main;
+                    }
                 }
             },
         }

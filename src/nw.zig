@@ -53,20 +53,22 @@ pub const Response = struct {
 };
 
 const BarbarGame = @import("game.zig").BarbarGame;
-pub var GAME: BarbarGame = undefined;
+pub var GAME: ?BarbarGame = undefined;
 
 pub fn recv_request(request: Request) Response {
     // Logger.debug("rcv called with type: {}", .{request.type});
     switch (request.type) {
         .START => |strt_rqst| {
+            if (GAME) |*game| {
+                game.shutdown();
+            }
             GAME = BarbarGame.init(.{ .seed = strt_rqst.seed }) catch {
-                return .{ .game_id = GAME.id, .status = .ERROR, .payload = .{ .ERROR = .INTERNAL_ERROR } };
+                return .{ .game_id = undefined, .status = .ERROR, .payload = .{ .ERROR = .INTERNAL_ERROR } };
             };
-            return GAME.process_request(request);
+            return GAME.?.process_request(request);
         },
         else => {
-            const response = GAME.process_request(request);
-            return response;
+            return GAME.?.process_request(request);
         },
     }
 }

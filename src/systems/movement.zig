@@ -37,7 +37,7 @@ pub fn move_entity(gs: *GameState, action: Action) ActionResult {
 
     // FIXME: tmp code, fix as soon as we get any kind of spatial container
     // for entities.
-    for (gs.actors.items) |*other_actor| {
+    for (gs.actors.values()) |other_actor| {
         if (other_actor == actor) continue;
         const other_pos = other_actor.getComponent(.POSITION) catch continue;
         if (other_pos.x == nx and other_pos.y == ny) {
@@ -54,7 +54,10 @@ pub fn move_entity(gs: *GameState, action: Action) ActionResult {
         }
     }
 
+    gs.actors.remove(actor);
     pos.x = nx;
     pos.y = ny;
+    gs.actors.add(actor);
+
     return action.accept(null);
 }

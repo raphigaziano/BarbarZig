@@ -18,30 +18,23 @@ pub fn spawn(gs: *GameState) !void {
         Heap.allocator, &.{
         Component.init(.PLAYER, void),
         Component.init(.VISIBLE, .{ .glyph = '@' }),
-        Component.init(.HEALTH, .{ .hp = 1 }),
+        Component.init(.HEALTH, .{ .hp = 10 }),
         Component.init(.POSITION, __get_spawn_location(gs)),
     });
     // zig fmt: on
-    try gs.actors.append(player);
-    // WARNING:
-    // Pointer is left dangling everytime the actor list is resized.
-    // Making sur we only assign it after the full list is populated (via
-    // defer) is enough for now, but this will break if we ever change the
-    // list (ie on level change). Either add a getPlayer accessor to the
-    // state object or just remember to reset it as needed. Overall
-    // architecture is way too fuzzy to commit for now.
-    defer gs.player = &gs.actors.items[0];
+    gs.actors.add(player);
+    gs.player = player;
 
     for (0..10) |_| {
         // zig fmt: off
             var actor = try Entity.init(
                 Heap.allocator, &.{
                 Component.init(.VISIBLE, .{ .glyph = 'g' }),
-                Component.init(.HEALTH, .{ .hp = 5 }),
+                Component.init(.HEALTH, .{ .hp = 1 }),
                 Component.init(.POSITION, __get_spawn_location(gs)),
             });
             // zig fmt: on
-        try gs.actors.append(actor);
+        gs.actors.add(actor);
     }
 }
 

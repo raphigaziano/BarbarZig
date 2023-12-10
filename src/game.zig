@@ -18,6 +18,7 @@ const Request = @import("nw.zig").Request;
 const Response = @import("nw.zig").Response;
 const Map = @import("map.zig").Map;
 const Entity = @import("entity.zig").Entity;
+const EntityList = @import("entity.zig").EntityList;
 const spawn = @import("spawn.zig").spawn;
 
 const Action = action.Action;
@@ -70,7 +71,7 @@ pub const BarbarGame = struct {
         self.state.* = .{
             .ticks = 0,
             .map = try Map.init(Heap.allocator, defs.MAP_W, defs.MAP_H),
-            .actors = std.ArrayList(Entity).init(Heap.allocator),
+            .actors = EntityList.init(Heap.allocator),
             .player = undefined,
         };
         self.running = true;
@@ -116,20 +117,22 @@ pub const BarbarGame = struct {
 
         const result = process_action(self.state, player_action);
         if (result.accepted) {
-            for (self.state.actors.items) |*actor| {
+            for (self.state.actors.values()) |actor| {
                 if (actor.hasComponent(.PLAYER)) continue;
                 ai.take_turn(self.state, actor);
             }
 
             // End of turn cleanup.
-            for (self.state.actors.items, 0..) |actor, i| {
-                const hlth = actor.getComponent(.HEALTH) catch unreachable;
-                if (!hlth.is_alive()) {
+            // FIXME: This should be done after each actor's turn, but breaks
+            // because this means modofying the list we're iterating over
+            for (Event.log.items) |ev| {
+                if (ev.type == .ACTOR_DIED) {
+                    var actor = ev.actor.?;
                     if (actor.hasComponent(.PLAYER)) {
                         self.running = false;
                     } else {
-                        actor.destroy();
-                        _ = self.state.actors.swapRemove(i);
+                        self.state.actors.remove(actor);
+                        actor.destroy(Heap.allocator);
                     }
                 }
             }
@@ -141,10 +144,7 @@ pub const BarbarGame = struct {
 
     /// Deinit all the things
     pub fn shutdown(self: *BarbarGame) void {
-        for (self.state.actors.items) |actor| {
-            actor.destroy();
-        }
-        self.state.actors.deinit();
+        self.state.actors.destroy(Heap.allocator);
         self.state.map.destroy(Heap.allocator);
         Heap.allocator.destroy(self.state);
 

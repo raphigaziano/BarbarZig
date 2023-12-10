@@ -11,6 +11,8 @@ const Logger = @import("utils/log.zig");
 const ComponentList = @import("component.zig").ComponentList;
 const CTypeFromTag = @import("component.zig").CTypeFromTag;
 
+const Vec2 = @import("utils/math.zig").Vec2;
+
 /// Glorified Component container.
 pub const Entity = struct {
     var _counter: u32 = 0;
@@ -20,8 +22,9 @@ pub const Entity = struct {
 
     const Self = @This();
 
-    pub fn init(allocator: std.mem.Allocator, components: ?[]const Component) !Self {
-        var self = Self{
+    pub fn init(allocator: std.mem.Allocator, components: ?[]const Component) !*Self {
+        var self = try allocator.create(Entity);
+        self.* = Self{
             .id = Self.getNewId(),
             .components = ComponentList.init(allocator),
         };
@@ -95,7 +98,46 @@ pub const Entity = struct {
     //     _ = try writer.write("LOL");
     // }
 
-    pub fn destroy(self: Entity) void {
+    pub fn destroy(self: *Entity, allocator: std.mem.Allocator) void {
         self.components.deinit();
+        allocator.destroy(self);
+    }
+};
+
+pub const EntityList = struct {
+    hm: std.AutoArrayHashMap(Vec2(i32), *Entity),
+
+    pub fn init(allocator: std.mem.Allocator) EntityList {
+        return .{
+            .hm = std.AutoArrayHashMap(Vec2(i32), *Entity).init(allocator),
+        };
+    }
+
+    pub fn add(self: *EntityList, e: *Entity) void {
+        std.debug.assert(e.hasComponent(.POSITION));
+        const pos = e.getComponent(.POSITION) catch unreachable;
+        self.hm.put(pos, e) catch |err| {
+            Logger.warn("Could not store entity: {}", .{err});
+        };
+    }
+
+    pub fn remove(self: *EntityList, e: *Entity) void {
+        std.debug.assert(e.hasComponent(.POSITION));
+        const pos = e.getComponent(.POSITION) catch unreachable;
+        std.debug.assert(self.hm.contains(pos));
+        _ = self.hm.orderedRemove(pos);
+    }
+
+    // at
+
+    pub fn values(self: EntityList) []*Entity {
+        return self.hm.values();
+    }
+
+    pub fn destroy(self: *EntityList, allocator: std.mem.Allocator) void {
+        for (self.values()) |e| {
+            e.destroy(allocator);
+        }
+        self.hm.deinit();
     }
 };
