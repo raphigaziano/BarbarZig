@@ -6,14 +6,14 @@ const std = @import("std");
 
 const GameState = @import("state.zig").GameState;
 const Entity = @import("entity.zig").Entity;
-const Vec2 = @import("utils/math.zig").Vec2;
+const PositionComponent = @import("component.zig").PositionComponent;
 
 const Event = @import("event.zig").Event;
 const Logger = @import("utils/log.zig");
 
 pub const ActionType = union(enum) {
     IDLE,
-    MOVE: Vec2(i32), // Must match Position component's type
+    MOVE: PositionComponent, // Must match Position component's type
     ATTACK: struct {
         dmg: i8,
     },

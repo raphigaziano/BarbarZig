@@ -8,8 +8,6 @@ const Entity = @import("entity.zig").Entity;
 const EntityList = @import("entity.zig").EntityList;
 const Map = @import("map.zig").Map;
 
-const Vec2 = @import("utils/math.zig").Vec2;
-
 pub const GameState = struct {
     ticks: i64 = 0,
     map: Map,

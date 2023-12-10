@@ -10,8 +10,7 @@ const Logger = @import("utils/log.zig");
 
 const ComponentList = @import("component.zig").ComponentList;
 const CTypeFromTag = @import("component.zig").CTypeFromTag;
-
-const Vec2 = @import("utils/math.zig").Vec2;
+const PositionComponent = @import("component.zig").PositionComponent;
 
 /// Glorified Component container.
 pub const Entity = struct {
@@ -105,11 +104,11 @@ pub const Entity = struct {
 };
 
 pub const EntityList = struct {
-    hm: std.AutoArrayHashMap(Vec2(i32), *Entity),
+    hm: std.AutoArrayHashMap(PositionComponent, *Entity),
 
     pub fn init(allocator: std.mem.Allocator) EntityList {
         return .{
-            .hm = std.AutoArrayHashMap(Vec2(i32), *Entity).init(allocator),
+            .hm = std.AutoArrayHashMap(PositionComponent, *Entity).init(allocator),
         };
     }
 
@@ -128,7 +127,7 @@ pub const EntityList = struct {
         _ = self.hm.orderedRemove(pos);
     }
 
-    pub fn at(self: EntityList, pos: Vec2(i32)) ?*Entity {
+    pub fn at(self: EntityList, pos: PositionComponent) ?*Entity {
         return self.hm.get(pos);
     }
 
