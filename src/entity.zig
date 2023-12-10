@@ -128,7 +128,9 @@ pub const EntityList = struct {
         _ = self.hm.orderedRemove(pos);
     }
 
-    // at
+    pub fn at(self: EntityList, pos: Vec2(i32)) ?*Entity {
+        return self.hm.get(pos);
+    }
 
     pub fn values(self: EntityList) []*Entity {
         return self.hm.values();

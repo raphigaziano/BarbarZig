@@ -35,23 +35,17 @@ pub fn move_entity(gs: *GameState, action: Action) ActionResult {
         return action.reject(msg);
     }
 
-    // FIXME: tmp code, fix as soon as we get any kind of spatial container
-    // for entities.
-    for (gs.actors.values()) |other_actor| {
-        if (other_actor == actor) continue;
-        const other_pos = other_actor.getComponent(.POSITION) catch continue;
-        if (other_pos.x == nx and other_pos.y == ny) {
-            // TODO: handle this in the accept method
-            var r = action.accept(null);
-            // zig fmt: off
-            r.next = .{
-                .actor = actor,
-                .target = other_actor,
-                .type = .{ .ATTACK = .{ .dmg = 1 } }
-            };
-            // zig fmt: on
-            return r;
-        }
+    if (gs.actors.at(.{ .x = nx, .y = ny })) |other_actor| {
+        // TODO: handle this in the accept method
+        var r = action.accept(null);
+        // zig fmt: off
+        r.next = .{
+            .actor = actor,
+            .target = other_actor,
+            .type = .{ .ATTACK = .{ .dmg = 1 } }
+        };
+        // zig fmt: on
+        return r;
     }
 
     gs.actors.remove(actor);
