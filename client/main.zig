@@ -157,7 +157,7 @@ const Entity = barbar.Entity;
 
 const Request = barbar.Request;
 const Response = barbar.Response;
-const send_request = barbar.recv_request;
+const send_request = barbar.handle_request;
 
 const RunResult = enum { QUIT, GAME_OVER };
 
@@ -167,7 +167,7 @@ pub fn run() RunResult {
     var events = start_response.payload.CMD_RESULT.events;
 
     while (true) {
-        draw_game(state, events.items); // Draw before input handling, because getch blocks
+        draw_game(state, events); // Draw before input handling, because getch blocks
         if (handle_input()) |request| {
             const response = send_request(request);
             if (request.type == .QUIT) {
@@ -179,7 +179,7 @@ pub fn run() RunResult {
                     state = payload.state;
                     events = payload.events;
                     if (!payload.running) {
-                        draw_game(state, events.items);
+                        draw_game(state, events);
                         return .GAME_OVER;
                     }
                 },

@@ -92,9 +92,10 @@ pub const BarbarGame = struct {
                 self.start() catch {
                     return self.mk_response(.ERROR, .{ .ERROR = .INTERNAL_ERROR });
                 };
-                return self.mk_response(.OK, .{ .CMD_RESULT = .{ .running = self.running, .state = self.state, .events = &Event.log } });
+                return self.mk_response(.OK, .{ .CMD_RESULT = .{ .running = self.running, .state = self.state, .events = Event.log.items } });
             },
             .QUIT => {
+                self.running = false;
                 self.shutdown();
                 return self.mk_response(.OK, .EMPTY);
             },
@@ -139,7 +140,7 @@ pub const BarbarGame = struct {
         }
         self.state.ticks += 1;
 
-        return self.mk_response(.OK, .{ .CMD_RESULT = .{ .running = self.running, .state = self.state, .events = &Event.log } });
+        return self.mk_response(.OK, .{ .CMD_RESULT = .{ .running = self.running, .state = self.state, .events = Event.log.items } });
     }
 
     /// Deinit all the things

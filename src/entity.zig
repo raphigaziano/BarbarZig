@@ -101,6 +101,13 @@ pub const Entity = struct {
         self.components.deinit();
         allocator.destroy(self);
     }
+
+    pub fn jsonStringify(self: Entity, json_writer: anytype) !void {
+        try json_writer.write(.{
+            .id = self.id,
+            .components = self.components.comps.items,
+        });
+    }
 };
 
 pub const EntityList = struct {
@@ -133,6 +140,10 @@ pub const EntityList = struct {
 
     pub fn values(self: EntityList) []*Entity {
         return self.hm.values();
+    }
+
+    pub fn jsonStringify(self: EntityList, json_writer: anytype) !void {
+        try json_writer.write(self.hm.values());
     }
 
     pub fn destroy(self: *EntityList, allocator: std.mem.Allocator) void {

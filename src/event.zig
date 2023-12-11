@@ -38,4 +38,13 @@ pub const Event = struct {
     pub fn shutdown() void {
         Event.log.deinit();
     }
+
+    pub fn jsonStringify(self: Event, json_writer: anytype) !void {
+        try json_writer.write(.{
+            .type = @tagName(self.type),
+            .msg = if (self.msg) |msg| msg else "",
+            .actor = self.actor,
+            .target = self.target,
+        });
+    }
 };
