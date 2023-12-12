@@ -38,6 +38,7 @@ pub const BarbarGame = struct {
     seed: u64,
     running: bool = false,
     state: *GameState,
+    cemetary: std.ArrayList(*Entity),
 
     const InitArgs = struct {
         seed: ?u64 = null,
@@ -59,7 +60,8 @@ pub const BarbarGame = struct {
                 Logger.err("Could not allocate memory:", .{});
                 std.debug.dumpCurrentStackTrace(null);
                 return err;
-            }
+            },
+            .cemetary = std.ArrayList(*Entity).init(Heap.single_turn_allocator),
         };
         // zig fmt: on
     }
@@ -115,6 +117,10 @@ pub const BarbarGame = struct {
         }
         Event.clear();
         Heap.clearTmp();
+        for (self.cemetary.items) |corpse| {
+            corpse.destroy(Heap.allocator);
+        }
+        self.cemetary.clearAndFree();
 
         const result = process_action(self.state, player_action);
         if (result.accepted) {
@@ -133,7 +139,7 @@ pub const BarbarGame = struct {
                         self.running = false;
                     } else {
                         self.state.actors.remove(actor);
-                        actor.destroy(Heap.allocator);
+                        self.cemetary.append(actor) catch {};
                     }
                 }
             }
@@ -148,6 +154,11 @@ pub const BarbarGame = struct {
         self.state.actors.destroy(Heap.allocator);
         self.state.map.destroy(Heap.allocator);
         Heap.allocator.destroy(self.state);
+
+        for (self.cemetary.items) |corpse| {
+            corpse.destroy(Heap.allocator);
+        }
+        self.cemetary.deinit();
 
         Event.shutdown();
 
