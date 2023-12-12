@@ -111,6 +111,24 @@ pub const ComponentList = struct {
         @compileError("Not Implemented");
     }
 
+    pub fn jsonStringify(self: ComponentList, json_writer: anytype) !void {
+        try json_writer.beginObject();
+        for (self.comps.items) |c| {
+            switch (c) {
+                inline else => |payload| {
+                    try json_writer.objectField(@tagName(std.meta.activeTag(c)));
+                    if (@TypeOf(payload) == void) {
+                        try json_writer.beginObject();
+                        try json_writer.endObject();
+                        continue;
+                    }
+                    try json_writer.write(payload);
+                },
+            }
+        }
+        try json_writer.endObject();
+    }
+
     pub fn deinit(self: Self) void {
         // AutoArrayHashMap.deinit crashes if indexer is const (such as when
         // accessed directly through self) for some reason.

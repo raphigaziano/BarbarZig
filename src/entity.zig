@@ -105,7 +105,7 @@ pub const Entity = struct {
     pub fn jsonStringify(self: Entity, json_writer: anytype) !void {
         try json_writer.write(.{
             .id = self.id,
-            .components = self.components.comps.items,
+            .components = self.components,
         });
     }
 };
