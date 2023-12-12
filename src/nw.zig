@@ -12,15 +12,18 @@ const Logger = @import("utils/log.zig");
 
 pub const Request = struct {
     pub const Type = union(enum) {
-        START: struct { seed: ?u64 },
+        START: struct { seed: ?u64 = null },
         QUIT,
         GAME_CMD: ActionType,
         // TODO: QUERY (retrieve some data), SET_OPT, SAVE, ...,
         _,
     };
+
+    game_id: ?[36]u8 = null,
+    compress: bool = true,
+    minify: bool = true,
+
     type: Request.Type,
-    // TODO: headers ? (for common options like game_id, requesting compression, full
-    // or partial state, etc...)
 
     fn parse(allocator: std.mem.Allocator, rstr: []const u8) !Request {
         const parsed = try json.parseFromSlice(
@@ -59,11 +62,12 @@ pub const Response = struct {
     status: Status,
     payload: Payload,
 
-    fn toStr(self: Response, allocator: std.mem.Allocator) ![]const u8 {
-        const ws = .minified;
-        // const ws = .indent_2;
-        std.log.debug("{}", .{self.payload.CMD_RESULT.events.len});
-        var json_str = try json.stringifyAlloc(allocator, self, .{ .whitespace = ws });
+    fn toStr(self: Response, allocator: std.mem.Allocator, request: Request) ![]const u8 {
+        var json_str = try json.stringifyAlloc(
+            allocator,
+            self,
+            .{ .whitespace = if (request.minify) .minified else .indent_2 },
+        );
         return json_str;
     }
 };
@@ -72,7 +76,6 @@ const BarbarGame = @import("game.zig").BarbarGame;
 pub var GAME: ?BarbarGame = undefined;
 
 pub fn handle_request(request: Request) Response {
-    // Logger.debug("rcv called with type: {}", .{request.type});
     switch (request.type) {
         .START => |strt_rqst| {
             if (GAME) |*game| {
@@ -95,7 +98,7 @@ pub fn recv_request(allocator: std.mem.Allocator, req_str: []const u8) []const u
         return "ONOES"; // TODO: proper error response
     };
     const resp = handle_request(request);
-    return resp.toStr(allocator) catch |err| {
+    return resp.toStr(allocator, request) catch |err| {
         std.log.err("Could not serialize response: {}", .{err});
         return "ONOES"; // TODO: proper error response
     };

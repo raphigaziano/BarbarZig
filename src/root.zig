@@ -6,4 +6,4 @@ pub const GameState = @import("state.zig").GameState;
 
 pub const Request = @import("nw.zig").Request;
 pub const Response = @import("nw.zig").Response;
-pub const recv_request = @import("nw.zig").recv_request;
+pub const handle_request = @import("nw.zig").handle_request;
