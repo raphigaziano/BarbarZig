@@ -178,7 +178,7 @@ pub fn run() RunResult {
                 .CMD_RESULT => |payload| {
                     state = payload.state;
                     events = payload.events;
-                    if (!payload.running) {
+                    if (payload.result == .GAME_OVER) {
                         draw_game(state, events);
                         return .GAME_OVER;
                     }

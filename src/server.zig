@@ -22,6 +22,7 @@ pub fn main() !void {
     const server = try os.socket(os.AF.INET, os.SOCK.STREAM, 0);
     defer os.closeSocket(server);
 
+    try os.setsockopt(server, os.SOL.SOCKET, os.SO.REUSEADDR, &std.mem.toBytes(@as(c_int, 1)));
     const addr = try net.Address.resolveIp(HOST, PORT);
 
     try os.bind(server, &addr.any, addr.getOsSockLen());
@@ -29,11 +30,13 @@ pub fn main() !void {
     std.debug.print("Listening on port: {}\n", .{PORT});
 
     while (true) {
-        const client = try os.accept(server, null, null, 0);
+        var client_addr: net.Address = undefined;
+        var client_addr_len: os.socklen_t = @sizeOf(net.Address);
+
+        const client = try os.accept(server, &client_addr.any, &client_addr_len, 0);
         defer os.closeSocket(client);
-        std.debug.print("Accepted client connection: XXX\n", .{});
-        // std.debug.print("{}", std.os.getsockname(client, os.AF.INET, null));
-        // std.debug.print("{}", std.os.getpeername(client, os.AF.INET, null));
+
+        std.debug.print("Accepted client connection: {}\n", .{client_addr});
 
         var buf = [_]u8{0} ** 256;
 

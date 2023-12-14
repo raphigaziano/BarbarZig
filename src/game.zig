@@ -82,45 +82,42 @@ pub const BarbarGame = struct {
         try spawn(self.state);
     }
 
-    /// Helper to create respone object (Move this to the Response struct ?)
-    fn mk_response(self: BarbarGame, status: Response.Status, payload: Response.Payload) Response {
-        return .{ .game_id = self.id, .status = status, .payload = payload };
-    }
-
     /// Handle the passed (already parsed) request and return its payload.
     pub fn process_request(self: *BarbarGame, request: Request) Response {
         return switch (request.type) {
             .START => {
                 self.start() catch {
-                    return self.mk_response(.ERROR, .{ .ERROR = .INTERNAL_ERROR });
+                    return Response.Error(self.*, .{ .type = .INTERNAL_ERROR });
                 };
-                return self.mk_response(.OK, .{ .CMD_RESULT = .{ .running = self.running, .state = self.state, .events = Event.log.items } });
+                return Response.CmdResult(self.*, .OK, .CMD_ACCEPTED);
             },
             .QUIT => {
-                self.running = false;
+                if (!self.running) {
+                    return Response.Error(self.*, .{ .type = .INVALID_REQUEST, .msg = "Game is not running" });
+                }
                 self.shutdown();
-                return self.mk_response(.OK, .EMPTY);
+                return Response.Empty(self.*, .OK);
             },
             .GAME_CMD => |cmd| {
+                if (!self.running) {
+                    return Response.Error(self.*, .{ .type = .INVALID_REQUEST, .msg = "Game is not running" });
+                }
                 const act = Action{ .type = cmd, .actor = self.state.player };
                 return self.tick(act);
             },
-            else => self.mk_response(.ERROR, .{ .ERROR = .INVALID_REQUEST }),
+            else => Response.Error(self.*, .{ .type = .INVALID_REQUEST }),
         };
     }
 
     /// Pseudo main loop => update current turn.
     pub fn tick(self: *BarbarGame, player_action: Action) Response {
-        if (!self.running) {
-            // TODO: more explicit error response
-            return self.mk_response(.ERROR, .{ .ERROR = .INVALID_REQUEST });
-        }
-        Event.clear();
-        Heap.clearTmp();
         for (self.cemetary.items) |corpse| {
             corpse.destroy(Heap.allocator);
         }
         self.cemetary.clearAndFree();
+
+        Event.clear();
+        Heap.clearTmp();
 
         const result = process_action(self.state, player_action);
         if (result.accepted) {
@@ -137,6 +134,7 @@ pub const BarbarGame = struct {
                     var actor = ev.actor.?;
                     if (actor.hasComponent(.PLAYER)) {
                         self.running = false;
+                        return Response.CmdResult(self.*, .OK, .GAME_OVER);
                     } else {
                         self.state.actors.remove(actor);
                         self.cemetary.append(actor) catch {};
@@ -146,11 +144,13 @@ pub const BarbarGame = struct {
         }
         self.state.ticks += 1;
 
-        return self.mk_response(.OK, .{ .CMD_RESULT = .{ .running = self.running, .state = self.state, .events = Event.log.items } });
+        return Response.CmdResult(self.*, .OK, .CMD_ACCEPTED);
     }
 
     /// Deinit all the things
     pub fn shutdown(self: *BarbarGame) void {
+        self.running = false;
+
         self.state.actors.destroy(Heap.allocator);
         self.state.map.destroy(Heap.allocator);
         Heap.allocator.destroy(self.state);

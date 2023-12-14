@@ -46,13 +46,23 @@ pub const Response = struct {
     };
 
     pub const Payload = union(enum) {
+        pub const CmdResultPayloadType = enum {
+            // OK,
+            CMD_ACCEPTED,
+            CMD_REJECTED,
+            GAME_OVER,
+        };
+
         EMPTY: void,
-        ERROR: enum {
-            INTERNAL_ERROR,
-            INVALID_REQUEST,
+        ERROR: struct {
+            type: enum {
+                INTERNAL_ERROR,
+                INVALID_REQUEST,
+            },
+            msg: ?[]const u8 = null,
         },
         CMD_RESULT: struct {
-            running: bool,
+            result: CmdResultPayloadType,
             state: *GS,
             events: []Event,
         },
@@ -62,11 +72,44 @@ pub const Response = struct {
     status: Status,
     payload: Payload,
 
-    fn toStr(self: Response, allocator: std.mem.Allocator, request: Request) ![]const u8 {
+    fn init(game: ?BarbarGame, status: Status, payload: Payload) Response {
+        // zig fmt: off
+        return .{
+            .game_id = if (game) |g| g.id else undefined,
+            .status = status,
+            .payload = payload
+        };
+        // zig fmt: on
+    }
+
+    pub fn Empty(game: ?BarbarGame, status: Status) Response {
+        return Response.init(game, status, .EMPTY);
+    }
+
+    pub fn Error(game: ?BarbarGame, payload: std.meta.TagPayload(Payload, .ERROR)) Response {
+        return Response.init(game, .ERROR, .{ .ERROR = payload });
+    }
+
+    pub fn CmdResult(
+        game: BarbarGame,
+        status: Status,
+        result: Payload.CmdResultPayloadType,
+    ) Response {
+        return Response.init(game, status, .{ .CMD_RESULT = .{
+            .result = result,
+            .state = game.state,
+            .events = Event.log.items,
+        } });
+    }
+
+    pub fn toStr(self: Response, allocator: std.mem.Allocator, request: ?Request) ![]const u8 {
         var json_str = try json.stringifyAlloc(
             allocator,
             self,
-            .{ .whitespace = if (request.minify) .minified else .indent_2 },
+            .{ .whitespace = if (request) |r|
+                if (r.minify) .minified else .indent_2
+            else
+                .indent_2 },
         );
         return json_str;
     }
@@ -82,7 +125,12 @@ pub fn handle_request(request: Request) Response {
                 game.shutdown();
             }
             GAME = BarbarGame.init(.{ .seed = strt_rqst.seed }) catch {
-                return .{ .game_id = undefined, .status = .ERROR, .payload = .{ .ERROR = .INTERNAL_ERROR } };
+                // zig fmt: off
+                return Response.Error(undefined, .{
+                    .type = .INTERNAL_ERROR,
+                    .msg = "Game could not be initialized"
+                });
+                // zig fmt: on
             };
             return GAME.?.process_request(request);
         },
@@ -95,11 +143,22 @@ pub fn handle_request(request: Request) Response {
 pub fn recv_request(allocator: std.mem.Allocator, req_str: []const u8) []const u8 {
     const request = Request.parse(allocator, req_str) catch |err| {
         std.log.err("Parse error: {}", .{err});
-        return "ONOES"; // TODO: proper error response
+        // zig fmt: off
+        return Response.Error(undefined, .{
+            .type = .INVALID_REQUEST,
+            .msg = "Could not parse request"
+        }).toStr(allocator, null) catch unreachable;
+        // zig fmt: on
     };
     const resp = handle_request(request);
+
     return resp.toStr(allocator, request) catch |err| {
         std.log.err("Could not serialize response: {}", .{err});
-        return "ONOES"; // TODO: proper error response
+        // zig fmt: off
+        return Response.Error(GAME, .{
+            .type = .INVALID_REQUEST,
+            .msg = "Could not serialize response"
+        }).toStr(allocator, request) catch unreachable;
+        // zig fmt: on
     };
 }
