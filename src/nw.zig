@@ -2,6 +2,7 @@
 //? exchange, whether over a network or not.
 
 const std = @import("std");
+const net = std.net;
 const json = std.json;
 
 const Event = @import("event.zig").Event;
@@ -140,25 +141,90 @@ pub fn handle_request(request: Request) Response {
     }
 }
 
-pub fn recv_request(allocator: std.mem.Allocator, req_str: []const u8) []const u8 {
-    const request = Request.parse(allocator, req_str) catch |err| {
-        std.log.err("Parse error: {}", .{err});
-        // zig fmt: off
-        return Response.Error(undefined, .{
-            .type = .INVALID_REQUEST,
-            .msg = "Could not parse request"
-        }).toStr(allocator, null) catch unreachable;
-        // zig fmt: on
-    };
-    const resp = handle_request(request);
+/// Wrapper around the base std.net.StreamServer
+pub const BarbarServer = struct {
+    arena: std.heap.ArenaAllocator,
+    allocator: std.mem.Allocator,
 
-    return resp.toStr(allocator, request) catch |err| {
-        std.log.err("Could not serialize response: {}", .{err});
-        // zig fmt: off
-        return Response.Error(GAME, .{
-            .type = .INVALID_REQUEST,
-            .msg = "Could not serialize response"
-        }).toStr(allocator, request) catch unreachable;
-        // zig fmt: on
-    };
-}
+    _server: net.StreamServer,
+
+    pub fn init(allocator: std.mem.Allocator) BarbarServer {
+        var arena = std.heap.ArenaAllocator.init(allocator);
+        return .{
+            .arena = arena,
+            .allocator = arena.allocator(),
+            ._server = net.StreamServer.init(.{ .reuse_address = true }),
+        };
+    }
+
+    pub fn listen(self: *BarbarServer, addr: net.Address) !void {
+        try self._server.listen(addr);
+        Logger.info("Listening on : {}", .{addr});
+    }
+
+    pub fn accept(self: *BarbarServer) !net.StreamServer.Connection {
+        var con = self._server.accept() catch |err| {
+            Logger.err("{}", .{err});
+            return err;
+        };
+
+        Logger.info("Accepted client connection: {}", .{con.address});
+        return con;
+    }
+
+    pub fn run(self: *BarbarServer) !void {
+        while (true) {
+            var client = try self.accept();
+            defer client.stream.close();
+
+            const bufsize = 256;
+            var buf = [_]u8{0} ** bufsize;
+            const len = try client.stream.read(buf[0..]);
+
+            if (len > 0) {
+                Logger.debug("received: {s}", .{buf[0..]});
+
+                const resp = self.recv_request(buf[0..len]);
+                Logger.debug("Response length: {}", .{resp.len});
+
+                _ = try client.stream.write(resp);
+            }
+
+            if (!self.arena.reset(.retain_capacity)) {
+                Logger.err("Could not reset temp memory!", .{});
+            }
+        }
+    }
+
+    pub fn recv_request(self: *BarbarServer, req_str: []const u8) []const u8 {
+        const request = Request.parse(self.allocator, req_str) catch |err| {
+            Logger.err("Parse error: {}", .{err});
+            // zig fmt: off
+            return Response.Error(undefined, .{
+                .type = .INVALID_REQUEST,
+                .msg = "Could not parse request"
+            }).toStr(self.allocator, null) catch unreachable;
+            // zig fmt: on
+        };
+        const resp = handle_request(request);
+
+        return resp.toStr(self.allocator, request) catch |err| {
+            Logger.err("Could not serialize response: {}", .{err});
+            // zig fmt: off
+            return Response.Error(GAME, .{
+                .type = .INVALID_REQUEST,
+                .msg = "Could not serialize response"
+            }).toStr(self.allocator, request) catch unreachable;
+            // zig fmt: on
+        };
+    }
+
+    pub fn close(self: *BarbarServer) void {
+        self._server.close();
+    }
+
+    pub fn deinit(self: *BarbarServer) void {
+        _ = self.arena.reset(.free_all);
+        self._server.deinit();
+    }
+};
