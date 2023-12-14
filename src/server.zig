@@ -14,9 +14,6 @@ pub var gpa = std.heap.GeneralPurposeAllocator(.{
     // .verbose_log = true,
 }){};
 
-pub var arena = std.heap.ArenaAllocator.init(gpa.allocator());
-pub const allocator = arena.allocator();
-
 pub fn main() !void {
     var server = BarbarServer.init(gpa.allocator());
     defer server.deinit();

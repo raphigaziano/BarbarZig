@@ -144,15 +144,15 @@ pub fn handle_request(request: Request) Response {
 /// Wrapper around the base std.net.StreamServer
 pub const BarbarServer = struct {
     arena: std.heap.ArenaAllocator,
-    allocator: std.mem.Allocator,
+    // allocator: std.mem.Allocator,
 
     _server: net.StreamServer,
 
-    pub fn init(allocator: std.mem.Allocator) BarbarServer {
-        var arena = std.heap.ArenaAllocator.init(allocator);
+    pub fn init(base_allocator: std.mem.Allocator) BarbarServer {
+        var arena = std.heap.ArenaAllocator.init(base_allocator);
         return .{
             .arena = arena,
-            .allocator = arena.allocator(),
+            // .allocator = arena.allocator(),
             ._server = net.StreamServer.init(.{ .reuse_address = true }),
         };
     }
@@ -197,24 +197,26 @@ pub const BarbarServer = struct {
     }
 
     pub fn recv_request(self: *BarbarServer, req_str: []const u8) []const u8 {
-        const request = Request.parse(self.allocator, req_str) catch |err| {
+        const allocator = self.arena.allocator();
+
+        const request = Request.parse(allocator, req_str) catch |err| {
             Logger.err("Parse error: {}", .{err});
             // zig fmt: off
             return Response.Error(undefined, .{
                 .type = .INVALID_REQUEST,
                 .msg = "Could not parse request"
-            }).toStr(self.allocator, null) catch unreachable;
+            }).toStr(allocator, null) catch unreachable;
             // zig fmt: on
         };
         const resp = handle_request(request);
 
-        return resp.toStr(self.allocator, request) catch |err| {
+        return resp.toStr(allocator, request) catch |err| {
             Logger.err("Could not serialize response: {}", .{err});
             // zig fmt: off
             return Response.Error(GAME, .{
                 .type = .INVALID_REQUEST,
                 .msg = "Could not serialize response"
-            }).toStr(self.allocator, request) catch unreachable;
+            }).toStr(allocator, request) catch unreachable;
             // zig fmt: on
         };
     }
