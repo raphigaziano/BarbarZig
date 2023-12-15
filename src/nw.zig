@@ -118,15 +118,21 @@ pub const Response = struct {
     }
 };
 
-pub var GAME: ?BarbarGame = undefined;
-
-pub fn handle_request(request: Request) Response {
+/// Main entry point - any client (networked or not) will have to go through
+/// this to interact with the game.
+/// Kept separate from server so that a direct client can call into it.
+pub fn handle_request(game: *?BarbarGame, request: Request) Response {
     switch (request.type) {
+        // Start is a special case, as we need to initialize a new game
+        // instance.
         .START => |strt_rqst| {
-            if (GAME) |*game| {
-                game.shutdown();
+            if (game.*) |g| {
+                return Response.Error(g, .{
+                    .type = .INVALID_REQUEST,
+                    .msg = "Game is already running",
+                });
             }
-            GAME = BarbarGame.init(.{ .seed = strt_rqst.seed }) catch {
+            game.* = BarbarGame.init(.{ .seed = strt_rqst.seed }) catch {
                 // zig fmt: off
                 return Response.Error(undefined, .{
                     .type = .INTERNAL_ERROR,
@@ -134,10 +140,19 @@ pub fn handle_request(request: Request) Response {
                 });
                 // zig fmt: on
             };
-            return GAME.?.process_request(request);
+            return game.*.?.process_request(request);
         },
         else => {
-            return GAME.?.process_request(request);
+            // Nulling the received pointer will cause its session to be
+            // terminated.
+            defer if (request.type == .QUIT) {
+                game.* = null;
+            };
+            if (game.*) |*g| {
+                return g.process_request(request);
+            } else {
+                return Response.Error(undefined, .{ .type = .INVALID_REQUEST, .msg = "Game is not running" });
+            }
         },
     }
 }
@@ -148,6 +163,7 @@ pub const BarbarServer = struct {
     // allocator: std.mem.Allocator,
 
     _server: net.StreamServer,
+    sessions: std.AutoHashMap(BarbarID, BarbarGame),
 
     pub fn init(base_allocator: std.mem.Allocator) BarbarServer {
         var arena = std.heap.ArenaAllocator.init(base_allocator);
@@ -155,6 +171,7 @@ pub const BarbarServer = struct {
             .arena = arena,
             // .allocator = arena.allocator(),
             ._server = net.StreamServer.init(.{ .reuse_address = true }),
+            .sessions = std.AutoHashMap(BarbarID, BarbarGame).init(base_allocator),
         };
     }
 
@@ -209,12 +226,31 @@ pub const BarbarServer = struct {
             }).toStr(allocator, null) catch unreachable;
             // zig fmt: on
         };
-        const resp = handle_request(request);
+
+        var current_game: ?BarbarGame = null;
+        if (request.game_id) |id| {
+            const session = self.sessions.fetchRemove(id) orelse
+                return Response.Error(undefined, .{
+                .type = .INVALID_REQUEST,
+                .msg = "Invalid game id",
+            }).toStr(allocator, request) catch unreachable;
+            current_game = session.value;
+        }
+        const resp = handle_request(&current_game, request);
+        if (current_game) |game| {
+            self.sessions.put(game.id, game) catch unreachable;
+        }
+
+        // Logger.debug("Sessions: ", .{});
+        // var session_keys = self.sessions.keyIterator();
+        // while (session_keys.next()) |sk| {
+        //     Logger.debug("  {s}", .{sk});
+        // }
 
         return resp.toStr(allocator, request) catch |err| {
             Logger.err("Could not serialize response: {}", .{err});
             // zig fmt: off
-            return Response.Error(GAME, .{
+            return Response.Error(current_game, .{
                 .type = .INVALID_REQUEST,
                 .msg = "Could not serialize response"
             }).toStr(allocator, request) catch unreachable;
@@ -228,6 +264,7 @@ pub const BarbarServer = struct {
 
     pub fn deinit(self: *BarbarServer) void {
         _ = self.arena.reset(.free_all);
+        self.sessions.deinit();
         self._server.deinit();
     }
 };

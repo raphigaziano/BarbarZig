@@ -95,9 +95,6 @@ pub const BarbarGame = struct {
                 return Response.CmdResult(self.*, .OK, .CMD_ACCEPTED);
             },
             .QUIT => {
-                if (!self.running) {
-                    return Response.Error(self.*, .{ .type = .INVALID_REQUEST, .msg = "Game is not running" });
-                }
                 self.shutdown();
                 return Response.Empty(self.*, .OK);
             },

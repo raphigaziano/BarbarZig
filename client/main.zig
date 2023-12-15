@@ -151,6 +151,7 @@ fn handle_input() ?Request {
 
 // --- Main program ---
 
+const Game = barbar.Game;
 const GameState = barbar.GameState;
 const Event = barbar.Event;
 const Entity = barbar.Entity;
@@ -161,15 +162,15 @@ const send_request = barbar.handle_request;
 
 const RunResult = enum { QUIT, GAME_OVER };
 
-pub fn run() RunResult {
-    const start_response = send_request(.{ .type = .{ .START = .{ .seed = null } } });
+pub fn run(game: *?Game) RunResult {
+    const start_response = send_request(game, .{ .type = .{ .START = .{ .seed = null } } });
     var state = start_response.payload.CMD_RESULT.state;
     var events = start_response.payload.CMD_RESULT.events;
 
     while (true) {
         draw_game(state, events); // Draw before input handling, because getch blocks
         if (handle_input()) |request| {
-            const response = send_request(request);
+            const response = send_request(game, request);
             if (request.type == .QUIT) {
                 return .QUIT;
             }
@@ -200,14 +201,17 @@ pub fn main() !void {
     // const args = std.process.args();
     // std.debug.print("{}", .{args});
 
+    var game: ?Game = null;
+
     main: while (true) {
-        switch (run()) {
+        switch (run(&game)) {
             .QUIT => break,
             .GAME_OVER => {
                 while (true) {
                     _ = ncurses.mvaddstr(21, 0, "You're dead :( Press R to restart, Q to quit.");
                     const key = ncurses.getch();
                     if (key == 'r') {
+                        _ = send_request(&game, .{ .type = .QUIT });
                         break;
                     } else if (key == 'q') {
                         break :main;
