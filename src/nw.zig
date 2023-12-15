@@ -5,6 +5,8 @@ const std = @import("std");
 const net = std.net;
 const json = std.json;
 
+const BarbarID = @import("game.zig").BarbarID;
+const BarbarGame = @import("game.zig").BarbarGame;
 const Event = @import("event.zig").Event;
 const ActionType = @import("action.zig").ActionType;
 const ActionResult = @import("action.zig").ActionResult;
@@ -20,7 +22,7 @@ pub const Request = struct {
         _,
     };
 
-    game_id: ?[36]u8 = null,
+    game_id: ?BarbarID = null,
     compress: bool = true,
     minify: bool = true,
 
@@ -69,7 +71,7 @@ pub const Response = struct {
         },
     };
 
-    game_id: [36]u8,
+    game_id: BarbarID,
     status: Status,
     payload: Payload,
 
@@ -116,7 +118,6 @@ pub const Response = struct {
     }
 };
 
-const BarbarGame = @import("game.zig").BarbarGame;
 pub var GAME: ?BarbarGame = undefined;
 
 pub fn handle_request(request: Request) Response {

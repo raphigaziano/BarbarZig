@@ -28,13 +28,16 @@ const process_action = action.process_action;
 const Heap = @import("alloc.zig").BarbarHeap;
 const Logger = @import("utils/log.zig");
 
+// Alias
+pub const BarbarID = [36]u8;
+
 /// Main game object.
 /// Holds state and handles the highest level logic (game "loop" and interface
 /// with external clients).
 /// If running behind a server, several instances will represent different
 /// sessions.
 pub const BarbarGame = struct {
-    id: [36]u8,
+    id: BarbarID,
     seed: u64,
     running: bool = false,
     state: *GameState,
@@ -49,7 +52,7 @@ pub const BarbarGame = struct {
 
         try Event.init(Heap.allocator);
 
-        var id: [36]u8 = undefined;
+        var id: BarbarID = undefined;
         uuid.newV4().to_string(&id);
 
         // zig fmt: off
