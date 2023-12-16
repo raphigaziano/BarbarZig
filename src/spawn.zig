@@ -2,6 +2,8 @@
 //? Spawning routines
 //?
 
+const Allocator = @import("std").mem.Allocator;
+
 const GameState = @import("state.zig").GameState;
 const Entity = @import("entity.zig").Entity;
 const Component = @import("component.zig").Component;
@@ -11,11 +13,11 @@ const defs = @import("defines.zig");
 const Heap = @import("alloc.zig").BarbarHeap;
 const rng = @import("rng.zig").Rng;
 
-pub fn spawn(gs: *GameState) !void {
+pub fn spawn(allocator: Allocator, gs: *GameState) !void {
 
     // zig fmt: off
     var player = try Entity.init(
-        Heap.allocator, &.{
+        allocator, &.{
         Component.init(.PLAYER, void),
         Component.init(.VISIBLE, .{ .glyph = '@' }),
         Component.init(.HEALTH, .{ .hp = 10 }),
@@ -28,7 +30,7 @@ pub fn spawn(gs: *GameState) !void {
     for (0..10) |_| {
         // zig fmt: off
             var actor = try Entity.init(
-                Heap.allocator, &.{
+                allocator, &.{
                 Component.init(.VISIBLE, .{ .glyph = 'g' }),
                 Component.init(.HEALTH, .{ .hp = 1 }),
                 Component.init(.POSITION, __get_spawn_location(gs)),

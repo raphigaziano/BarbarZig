@@ -6,8 +6,6 @@ const std = @import("std");
 
 const Entity = @import("entity.zig").Entity;
 
-const Heap = @import("alloc.zig").BarbarHeap;
-
 /// Game Event structure.
 /// This is just a glorified string list for now, but should grow soon.
 pub const Event = struct {

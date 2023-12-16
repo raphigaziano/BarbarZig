@@ -160,16 +160,16 @@ pub fn handle_request(game: *?BarbarGame, request: Request) Response {
 /// Wrapper around the base std.net.StreamServer
 pub const BarbarServer = struct {
     arena: std.heap.ArenaAllocator,
-    // allocator: std.mem.Allocator,
+    allocator: std.mem.Allocator,
 
     _server: net.StreamServer,
     sessions: std.AutoHashMap(BarbarID, BarbarGame),
 
-    pub fn init(base_allocator: std.mem.Allocator) BarbarServer {
+    pub inline fn init(base_allocator: std.mem.Allocator) BarbarServer {
         var arena = std.heap.ArenaAllocator.init(base_allocator);
         return .{
             .arena = arena,
-            // .allocator = arena.allocator(),
+            .allocator = arena.allocator(),
             ._server = net.StreamServer.init(.{ .reuse_address = true }),
             .sessions = std.AutoHashMap(BarbarID, BarbarGame).init(base_allocator),
         };
@@ -215,15 +215,13 @@ pub const BarbarServer = struct {
     }
 
     pub fn recv_request(self: *BarbarServer, req_str: []const u8) []const u8 {
-        const allocator = self.arena.allocator();
-
-        const request = Request.parse(allocator, req_str) catch |err| {
+        const request = Request.parse(self.allocator, req_str) catch |err| {
             Logger.err("Parse error: {}", .{err});
             // zig fmt: off
             return Response.Error(undefined, .{
                 .type = .INVALID_REQUEST,
                 .msg = "Could not parse request"
-            }).toStr(allocator, null) catch unreachable;
+            }).toStr(self.allocator, null) catch unreachable;
             // zig fmt: on
         };
 
@@ -233,7 +231,7 @@ pub const BarbarServer = struct {
                 return Response.Error(undefined, .{
                 .type = .INVALID_REQUEST,
                 .msg = "Invalid game id",
-            }).toStr(allocator, request) catch unreachable;
+            }).toStr(self.allocator, request) catch unreachable;
             current_game = session.value;
         }
         const resp = handle_request(&current_game, request);
@@ -247,13 +245,13 @@ pub const BarbarServer = struct {
         //     Logger.debug("  {s}", .{sk});
         // }
 
-        return resp.toStr(allocator, request) catch |err| {
+        return resp.toStr(self.allocator, request) catch |err| {
             Logger.err("Could not serialize response: {}", .{err});
             // zig fmt: off
             return Response.Error(current_game, .{
                 .type = .INVALID_REQUEST,
                 .msg = "Could not serialize response"
-            }).toStr(allocator, request) catch unreachable;
+            }).toStr(self.allocator, request) catch unreachable;
             // zig fmt: on
         };
     }

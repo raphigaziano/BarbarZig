@@ -4,6 +4,7 @@
 
 const std = @import("std");
 
+const Heap = @import("alloc.zig").BarbarHeap;
 const GameState = @import("state.zig").GameState;
 const Entity = @import("entity.zig").Entity;
 const PositionComponent = @import("component.zig").PositionComponent;
@@ -77,12 +78,12 @@ pub const Action = struct {
 };
 
 /// Dispacth game action to the relevant subsystem
-fn handle_action(gs: *GameState, action: Action) ActionResult {
+fn handle_action(heap: *Heap, gs: *GameState, action: Action) ActionResult {
     const systems = @import("systems.zig");
     return switch (action.type) {
         .IDLE => .{ .accepted = true }, // no-op
-        .MOVE => systems.movement.move_entity(gs, action),
-        .ATTACK => systems.combat.handle_attack(gs, action),
+        .MOVE => systems.movement.move_entity(heap, gs, action),
+        .ATTACK => systems.combat.handle_attack(heap, gs, action),
         else => {
             // Just log and invalidate the command for now.
             // We may want to treat this as a proper error in the future.
@@ -94,10 +95,10 @@ fn handle_action(gs: *GameState, action: Action) ActionResult {
 
 /// Process the given action recursively (ie will process any `next_action`
 /// returned)
-pub fn process_action(gs: *GameState, action: Action) ActionResult {
-    const r = handle_action(gs, action);
+pub fn process_action(heap: *Heap, gs: *GameState, action: Action) ActionResult {
+    const r = handle_action(heap, gs, action);
     if (r.next) |next_action| {
-        return process_action(gs, next_action);
+        return process_action(heap, gs, next_action);
     }
     return r;
 }

@@ -40,6 +40,7 @@ pub const BarbarGame = struct {
     id: BarbarID,
     seed: u64,
     running: bool = false,
+    heap: Heap,
     state: *GameState,
     cemetary: std.ArrayList(*Entity),
 
@@ -48,25 +49,26 @@ pub const BarbarGame = struct {
     };
 
     pub fn init(args: InitArgs) !BarbarGame {
+        const heap = try Heap.init();
+
         rng.init(args.seed) catch {};
 
-        try Event.init(Heap.allocator);
+        try Event.init(heap.allocator);
 
         var id: BarbarID = undefined;
         uuid.newV4().to_string(&id);
 
-        // zig fmt: off
         return .{
             .id = id,
             .seed = rng.seed,
-            .state = Heap.allocator.create(GameState) catch |err| {
+            .heap = heap,
+            .state = heap.allocator.create(GameState) catch |err| {
                 Logger.err("Could not allocate memory:", .{});
                 std.debug.dumpCurrentStackTrace(null);
                 return err;
             },
-            .cemetary = std.ArrayList(*Entity).init(Heap.single_turn_allocator),
+            .cemetary = std.ArrayList(*Entity).init(heap.single_turn_allocator),
         };
-        // zig fmt: on
     }
 
     /// Start a new game & setup all the things.
@@ -75,14 +77,14 @@ pub const BarbarGame = struct {
 
         self.state.* = .{
             .ticks = 0,
-            .map = try Map.init(Heap.allocator, defs.MAP_W, defs.MAP_H),
-            .actors = EntityList.init(Heap.allocator),
+            .map = try Map.init(self.heap.allocator, defs.MAP_W, defs.MAP_H),
+            .actors = EntityList.init(self.heap.allocator),
             .player = undefined,
         };
         self.running = true;
 
-        try mapgen.cellular_map(&self.state.map, Heap.allocator);
-        try spawn(self.state);
+        try mapgen.cellular_map(&self.state.map, self.heap.allocator);
+        try spawn(self.heap.allocator, self.state);
     }
 
     /// Handle the passed (already parsed) request and return its payload.
@@ -112,18 +114,18 @@ pub const BarbarGame = struct {
     /// Pseudo main loop => update current turn.
     pub fn tick(self: *BarbarGame, player_action: Action) Response {
         for (self.cemetary.items) |corpse| {
-            corpse.destroy(Heap.allocator);
+            corpse.destroy(self.heap.allocator);
         }
         self.cemetary.clearAndFree();
 
         Event.clear();
-        Heap.clearTmp();
+        self.heap.clearTmp();
 
-        const result = process_action(self.state, player_action);
+        const result = process_action(&self.heap, self.state, player_action);
         if (result.accepted) {
             for (self.state.actors.values()) |actor| {
                 if (actor.hasComponent(.PLAYER)) continue;
-                ai.take_turn(self.state, actor);
+                ai.take_turn(&self.heap, self.state, actor);
             }
 
             // End of turn cleanup.
@@ -151,18 +153,18 @@ pub const BarbarGame = struct {
     pub fn shutdown(self: *BarbarGame) void {
         self.running = false;
 
-        self.state.actors.destroy(Heap.allocator);
-        self.state.map.destroy(Heap.allocator);
-        Heap.allocator.destroy(self.state);
+        self.state.actors.destroy(self.heap.allocator);
+        self.state.map.destroy(self.heap.allocator);
+        self.heap.allocator.destroy(self.state);
 
         for (self.cemetary.items) |corpse| {
-            corpse.destroy(Heap.allocator);
+            corpse.destroy(self.heap.allocator);
         }
         self.cemetary.deinit();
 
         Event.shutdown();
 
-        Heap.shutdown();
+        self.heap.shutdown();
         Logger.debug("ALL DONE!", .{});
     }
 };
