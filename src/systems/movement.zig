@@ -52,8 +52,7 @@ pub fn move_entity(game: *Game, action: Action) ActionResult {
     }
 
     gs.actors.remove(actor);
-    pos.x = nx;
-    pos.y = ny;
+    pos.* = .{ .x = nx, .y = ny };
     gs.actors.add(actor);
 
     return action.accept(game.events, null);
