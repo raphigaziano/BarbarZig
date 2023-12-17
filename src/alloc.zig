@@ -26,7 +26,9 @@ pub const BarbarHeap = struct {
     arena: *std.heap.ArenaAllocator,
     single_turn_allocator: std.mem.Allocator,
 
-    pub inline fn init() !BarbarHeap {
+    pub fn init() !*BarbarHeap {
+        var heap = try global_allocator.create(BarbarHeap);
+
         var gpa = try global_allocator.create(BarbarGPA);
         gpa.* = BarbarGPA{};
         const allocator = gpa.allocator();
@@ -35,12 +37,13 @@ pub const BarbarHeap = struct {
         arena.* = std.heap.ArenaAllocator.init(allocator);
         const single_turn_allocator = arena.allocator();
 
-        return .{
+        heap.* = .{
             .gpa = gpa,
             .allocator = allocator,
             .arena = arena,
             .single_turn_allocator = single_turn_allocator,
         };
+        return heap;
     }
 
     pub fn clearTmp(self: *BarbarHeap) void {
@@ -55,5 +58,6 @@ pub const BarbarHeap = struct {
 
         global_allocator.destroy(self.arena);
         global_allocator.destroy(self.gpa);
+        global_allocator.destroy(self);
     }
 };

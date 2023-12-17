@@ -9,8 +9,6 @@ const Entity = @import("entity.zig").Entity;
 /// Game Event structure.
 /// This is just a glorified string list for now, but should grow soon.
 pub const Event = struct {
-    pub var log: std.ArrayList(Event) = undefined;
-
     const Type = enum {
         ACTION_PROCESSED,
         ACTOR_DIED,
@@ -21,22 +19,6 @@ pub const Event = struct {
     target: ?*Entity = null,
     msg: ?[:0]const u8 = null,
 
-    pub fn init(allocator: std.mem.Allocator) !void {
-        Event.log = std.ArrayList(Event).init(allocator);
-    }
-
-    pub fn emit(e: Event) !void {
-        try Event.log.append(e);
-    }
-
-    pub fn clear() void {
-        Event.log.clearAndFree();
-    }
-
-    pub fn shutdown() void {
-        Event.log.deinit();
-    }
-
     pub fn jsonStringify(self: Event, json_writer: anytype) !void {
         try json_writer.write(.{
             .type = @tagName(self.type),
@@ -44,5 +26,29 @@ pub const Event = struct {
             .actor = self.actor,
             .target = self.target,
         });
+    }
+};
+
+pub const EventSystem = struct {
+    log: std.ArrayList(Event),
+
+    pub fn init(allocator: std.mem.Allocator) !*EventSystem {
+        const es = try allocator.create(EventSystem);
+        es.* = .{
+            .log = std.ArrayList(Event).init(allocator),
+        };
+        return es;
+    }
+
+    pub fn emit(self: *EventSystem, e: Event) !void {
+        try self.log.append(e);
+    }
+
+    pub fn clear(self: *EventSystem) void {
+        self.log.clearAndFree();
+    }
+
+    pub fn shutdown(self: *EventSystem) void {
+        self.log.deinit();
     }
 };

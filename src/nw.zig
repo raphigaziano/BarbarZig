@@ -101,7 +101,7 @@ pub const Response = struct {
         return Response.init(game, status, .{ .CMD_RESULT = .{
             .result = result,
             .state = game.state,
-            .events = Event.log.items,
+            .events = game.events.log.items,
         } });
     }
 

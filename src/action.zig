@@ -4,12 +4,11 @@
 
 const std = @import("std");
 
-const Heap = @import("alloc.zig").BarbarHeap;
-const GameState = @import("state.zig").GameState;
+const Game = @import("game.zig").BarbarGame;
 const Entity = @import("entity.zig").Entity;
 const PositionComponent = @import("component.zig").PositionComponent;
 
-const Event = @import("event.zig").Event;
+const EventSystem = @import("event.zig").EventSystem;
 const Logger = @import("utils/log.zig");
 
 pub const ActionType = union(enum) {
@@ -56,8 +55,8 @@ pub const Action = struct {
         return @field(self.type, @tagName(ATag));
     }
 
-    fn result(self: Action, accepted: bool, message: ?[:0]const u8) ActionResult {
-        Event.emit(.{
+    fn result(self: Action, accepted: bool, events: *EventSystem, message: ?[:0]const u8) ActionResult {
+        events.emit(.{
             .type = .ACTION_PROCESSED,
             .msg = message,
             .actor = self.actor,
@@ -68,22 +67,22 @@ pub const Action = struct {
         };
     }
 
-    pub fn accept(self: Action, message: ?[:0]const u8) ActionResult {
-        return self.result(true, message);
+    pub fn accept(self: Action, events: *EventSystem, message: ?[:0]const u8) ActionResult {
+        return self.result(true, events, message);
     }
 
-    pub fn reject(self: Action, message: ?[:0]const u8) ActionResult {
-        return self.result(false, message);
+    pub fn reject(self: Action, events: *EventSystem, message: ?[:0]const u8) ActionResult {
+        return self.result(false, events, message);
     }
 };
 
 /// Dispacth game action to the relevant subsystem
-fn handle_action(heap: *Heap, gs: *GameState, action: Action) ActionResult {
+fn handle_action(game: *Game, action: Action) ActionResult {
     const systems = @import("systems.zig");
     return switch (action.type) {
         .IDLE => .{ .accepted = true }, // no-op
-        .MOVE => systems.movement.move_entity(heap, gs, action),
-        .ATTACK => systems.combat.handle_attack(heap, gs, action),
+        .MOVE => systems.movement.move_entity(game, action),
+        .ATTACK => systems.combat.handle_attack(game, action),
         else => {
             // Just log and invalidate the command for now.
             // We may want to treat this as a proper error in the future.
@@ -95,10 +94,10 @@ fn handle_action(heap: *Heap, gs: *GameState, action: Action) ActionResult {
 
 /// Process the given action recursively (ie will process any `next_action`
 /// returned)
-pub fn process_action(heap: *Heap, gs: *GameState, action: Action) ActionResult {
-    const r = handle_action(heap, gs, action);
+pub fn process_action(game: *Game, action: Action) ActionResult {
+    const r = handle_action(game, action);
     if (r.next) |next_action| {
-        return process_action(heap, gs, next_action);
+        return process_action(game, next_action);
     }
     return r;
 }

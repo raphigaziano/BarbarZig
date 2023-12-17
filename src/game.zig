@@ -13,7 +13,7 @@ const rng = @import("rng.zig").Rng;
 const ai = @import("ai.zig");
 
 const GameState = @import("state.zig").GameState;
-const Event = @import("event.zig").Event;
+const EventSystem = @import("event.zig").EventSystem;
 const Request = @import("nw.zig").Request;
 const Response = @import("nw.zig").Response;
 const Map = @import("map.zig").Map;
@@ -40,8 +40,9 @@ pub const BarbarGame = struct {
     id: BarbarID,
     seed: u64,
     running: bool = false,
-    heap: Heap,
+    heap: *Heap,
     state: *GameState,
+    events: *EventSystem,
     cemetary: std.ArrayList(*Entity),
 
     const InitArgs = struct {
@@ -52,8 +53,6 @@ pub const BarbarGame = struct {
         const heap = try Heap.init();
 
         rng.init(args.seed) catch {};
-
-        try Event.init(heap.allocator);
 
         var id: BarbarID = undefined;
         uuid.newV4().to_string(&id);
@@ -67,6 +66,7 @@ pub const BarbarGame = struct {
                 std.debug.dumpCurrentStackTrace(null);
                 return err;
             },
+            .events = try EventSystem.init(heap.allocator),
             .cemetary = std.ArrayList(*Entity).init(heap.single_turn_allocator),
         };
     }
@@ -118,20 +118,20 @@ pub const BarbarGame = struct {
         }
         self.cemetary.clearAndFree();
 
-        Event.clear();
+        self.events.clear();
         self.heap.clearTmp();
 
-        const result = process_action(&self.heap, self.state, player_action);
+        const result = process_action(self, player_action);
         if (result.accepted) {
             for (self.state.actors.values()) |actor| {
                 if (actor.hasComponent(.PLAYER)) continue;
-                ai.take_turn(&self.heap, self.state, actor);
+                ai.take_turn(self, actor);
             }
 
             // End of turn cleanup.
             // FIXME: This should be done after each actor's turn, but breaks
             // because this means modofying the list we're iterating over
-            for (Event.log.items) |ev| {
+            for (self.events.log.items) |ev| {
                 if (ev.type == .ACTOR_DIED) {
                     var actor = ev.actor.?;
                     if (actor.hasComponent(.PLAYER)) {
@@ -162,7 +162,8 @@ pub const BarbarGame = struct {
         }
         self.cemetary.deinit();
 
-        Event.shutdown();
+        self.events.shutdown();
+        self.heap.allocator.destroy(self.events);
 
         self.heap.shutdown();
         Logger.debug("ALL DONE!", .{});
