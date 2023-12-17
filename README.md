@@ -13,8 +13,8 @@ Goals:
   Actual game is written as a library to be used (hopefully) any graphic client,
   possibly via a server.
 
-  Currently a client needs to import the game as a zig package to interact with 
-  it, but said interaction can be limited to a single entry point and a few 
+  Currently a client needs to import the game as a zig package to interact with
+  it, but said interaction can be limited to a single entry point and a few
   imports (needed for type checking).
 
   Ideally we should add some serpilization format as well as a simple application
@@ -25,7 +25,7 @@ Goals:
   I'm not aiming for a "proper" ECS systems (ie with cache friendly contiguous
   component storage) as this feels overkill for a simple turn based game.
 
-  Instead focusing on the composable aspect of it, in which game entities are 
+  Instead focusing on the composable aspect of it, in which game entities are
   defined exclusively by their associated components.
 
 - Data driven
@@ -42,13 +42,14 @@ Immediate plans are:
 
 - More scaffolding:
 
-    - Proper game state serialization (json)
-    - Simple server application
-    - Better defined application protocol
+    - Proper game state serialization (json)    DONE
+    - Simple server application                 DONE
+    - Better defined application protocol       DONE(ish)
 
 - Some actual game logic:
 
-    - Simple combat system
+    - Simple combat system                      DONE
     - Ability to change levels
     - Proper(ish) map generation
     - ...
+    - profit
